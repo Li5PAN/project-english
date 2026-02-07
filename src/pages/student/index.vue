@@ -1,1 +1,166 @@
-// 学生端登陆成功后进入的首页
+<template>
+  <a-layout style="min-height: 100vh">
+    <a-layout-sider :width="200" style="background: #fff">
+      <div class="logo">
+        <h3>学生端</h3>
+      </div>
+      <a-menu
+        v-model:selectedKeys="selectedKeys"
+        :open-keys="openKeys"
+        mode="inline"
+        theme="light"
+        :items="items"
+        @click="handleMenuClick"
+        @openChange="onOpenChange"
+      />
+    </a-layout-sider>
+    
+    <a-layout>
+      <a-layout-header style="background: #fff; padding: 0 24px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">{{ pageTitle }}</h2>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span>欢迎，{{ userInfo.name || userInfo.username }}</span>
+          <a-button type="primary" danger @click="logout">退出登录</a-button>
+        </div>
+      </a-layout-header>
+      
+      <a-layout-content style="margin: 16px; padding: 24px; background: #fff; min-height: 280px;">
+        <router-view />
+      </a-layout-content>
+    </a-layout>
+  </a-layout>
+</template>
+
+<script setup>
+import { ref, onMounted, computed, shallowRef } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import HomeOutlined from '@ant-design/icons-vue/HomeOutlined'
+import BookOutlined from '@ant-design/icons-vue/BookOutlined'
+import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
+import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
+import CarryOutOutlined from '@ant-design/icons-vue/CarryOutOutlined'
+import BarChartOutlined from '@ant-design/icons-vue/BarChartOutlined'
+
+const router = useRouter()
+const route = useRoute()
+
+const selectedKeys = ref(['home'])
+const openKeys = ref([])
+const userInfo = ref({})
+
+// 菜单项配置函数
+function getItem(label, key, icon, children) {
+  return {
+    key,
+    icon: icon ? shallowRef(icon) : undefined,
+    children,
+    label,
+  }
+}
+
+// 菜单配置
+const items = [
+  getItem('首页', 'home', HomeOutlined),
+  getItem('我的学习', 'word-study', BookOutlined, [
+    getItem('单词学习', 'word-query'),
+    getItem('单词训练', 'word-training'),
+  ]),
+  getItem('我的错题', 'my-errors', FileTextOutlined),
+  getItem('我的班级', 'my-class', TeamOutlined),
+  getItem('我的任务', 'my-tasks', CarryOutOutlined),
+  getItem('我的学情', 'my-progress', BarChartOutlined),
+]
+
+// 一级菜单的 keys（用于手风琴效果）
+const rootSubmenuKeys = ['word-study']
+
+const menuTitles = {
+  home: '首页',
+  'word-query': '单词查询',
+  'word-training': '单词训练',
+  'my-errors': '我的错题',
+  'my-class': '我的班级',
+  'my-tasks': '我的任务',
+  'my-progress': '我的学情'
+}
+
+const pageTitle = computed(() => {
+  return menuTitles[selectedKeys.value[0]] || '首页'
+})
+
+// 手风琴效果：一次只展开一个子菜单
+const onOpenChange = (keys) => {
+  const latestOpenKey = keys.find((key) => openKeys.value.indexOf(key) === -1)
+  if (rootSubmenuKeys.indexOf(latestOpenKey) === -1) {
+    openKeys.value = keys
+  } else {
+    openKeys.value = latestOpenKey ? [latestOpenKey] : []
+  }
+}
+
+onMounted(() => {
+  const info = localStorage.getItem('userInfo')
+  if (info) {
+    userInfo.value = JSON.parse(info)
+  } else {
+    router.push('/login')
+  }
+  
+  // 根据当前路由设置选中的菜单
+  const path = route.path
+  if (path.includes('word-query')) {
+    selectedKeys.value = ['word-query']
+    openKeys.value = ['word-study']
+  } else if (path.includes('word-training')) {
+    selectedKeys.value = ['word-training']
+    openKeys.value = ['word-study']
+  } else if (path.includes('my-errors')) {
+    selectedKeys.value = ['my-errors']
+  } else if (path.includes('my-class')) {
+    selectedKeys.value = ['my-class']
+  } else if (path.includes('my-tasks')) {
+    selectedKeys.value = ['my-tasks']
+  } else if (path.includes('my-progress')) {
+    selectedKeys.value = ['my-progress']
+  } else {
+    selectedKeys.value = ['home']
+  }
+})
+
+const handleMenuClick = ({ key }) => {
+  const routes = {
+    home: '/student/home',
+    'word-query': '/student/word-query',
+    'word-training': '/student/word-training',
+    'my-errors': '/student/my-errors',
+    'my-class': '/student/my-class',
+    'my-tasks': '/student/my-tasks',
+    'my-progress': '/student/my-progress'
+  }
+  
+  if (routes[key]) {
+    router.push(routes[key])
+  }
+}
+
+const logout = () => {
+  localStorage.removeItem('userInfo')
+  router.push('/login')
+}
+</script>
+
+<style scoped>
+.logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1890ff;
+}
+
+.logo h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 18px;
+}
+</style>

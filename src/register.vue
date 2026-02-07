@@ -1,12 +1,12 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h2>英语学习系统</h2>
-      <form @submit.prevent="handleLogin">
+  <div class="register-container">
+    <div class="register-box">
+      <h2>用户注册</h2>
+      <form @submit.prevent="handleRegister">
         <div class="form-group">
           <label>账号</label>
           <input 
-            v-model="loginForm.username" 
+            v-model="registerForm.username" 
             type="text" 
             placeholder="请输入账号"
             required
@@ -15,15 +15,25 @@
         <div class="form-group">
           <label>密码</label>
           <input 
-            v-model="loginForm.password" 
+            v-model="registerForm.password" 
             type="password" 
             placeholder="请输入密码"
             required
           />
         </div>
+        <div class="form-group">
+          <label>昵称</label>
+          <input 
+            v-model="registerForm.nickname" 
+            type="text" 
+            placeholder="请输入昵称"
+            required
+          />
+        </div>
         <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
-        <button type="submit" class="btn-login">登录</button>
-        <button type="button" class="btn-register" @click="goToRegister">注册</button>
+        <div v-if="successMsg" class="success-msg">{{ successMsg }}</div>
+        <button type="submit" class="btn-register">注册</button>
+        <button type="button" class="btn-back" @click="goToLogin">返回登录</button>
       </form>
     </div>
   </div>
@@ -35,66 +45,62 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const loginForm = ref({
+const registerForm = ref({
   username: '',
-  password: ''
+  password: '',
+  nickname: ''
 })
 
 const errorMsg = ref('')
+const successMsg = ref('')
 
-// 模拟用户数据
-const mockUsers = {
-  student: { password: '123456', role: 'student', name: '学生' },
-  laoshi: { password: '123456', role: 'teacher', name: '老师' },
-  admin: { password: '123456', role: 'admin', name: '管理员' }
-}
-
-const handleLogin = () => {
+const handleRegister = () => {
   errorMsg.value = ''
+  successMsg.value = ''
   
-  const { username, password } = loginForm.value
+  const { username, password, nickname } = registerForm.value
   
-  if (!username || !password) {
-    errorMsg.value = '请输入账号和密码'
+  if (!username || !password || !nickname) {
+    errorMsg.value = '请填写完整信息'
     return
   }
   
-  const user = mockUsers[username]
-  
-  if (!user) {
-    errorMsg.value = '账号不存在'
+  if (username.length < 3) {
+    errorMsg.value = '账号长度至少3个字符'
     return
   }
   
-  if (user.password !== password) {
-    errorMsg.value = '密码错误'
+  if (password.length < 6) {
+    errorMsg.value = '密码长度至少6个字符'
     return
   }
   
-  // 登录成功，保存用户信息
-  localStorage.setItem('userInfo', JSON.stringify({
+  // 模拟注册成功
+  successMsg.value = '注册成功！2秒后跳转到登录页...'
+  
+  // 保存注册信息到 localStorage（实际项目中应该发送到后端）
+  const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+  registeredUsers.push({
     username,
-    role: user.role,
-    name: user.name
-  }))
+    password,
+    nickname,
+    role: 'student' // 默认注册为学生角色
+  })
+  localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
   
-  // 根据角色跳转到不同页面
-  if (user.role === 'student') {
-    router.push('/student')
-  } else if (user.role === 'teacher') {
-    router.push('/teacher')
-  } else if (user.role === 'admin') {
-    router.push('/admin')
-  }
+  // 2秒后跳转到登录页
+  setTimeout(() => {
+    router.push('/login')
+  }, 2000)
 }
 
-const goToRegister = () => {
-  router.push('/register')
+const goToLogin = () => {
+  router.push('/login')
 }
 </script>
 
 <style scoped>
-.login-container {
+.register-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -102,7 +108,7 @@ const goToRegister = () => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.login-box {
+.register-box {
   background: white;
   padding: 40px;
   border-radius: 10px;
@@ -151,6 +157,13 @@ input:focus {
   text-align: center;
 }
 
+.success-msg {
+  color: #67c23a;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
 button {
   width: 100%;
   padding: 12px;
@@ -161,23 +174,23 @@ button {
   transition: all 0.3s;
 }
 
-.btn-login {
+.btn-register {
   background: #667eea;
   color: white;
   margin-bottom: 10px;
 }
 
-.btn-login:hover {
+.btn-register:hover {
   background: #5568d3;
 }
 
-.btn-register {
+.btn-back {
   background: white;
   color: #667eea;
   border: 1px solid #667eea;
 }
 
-.btn-register:hover {
+.btn-back:hover {
   background: #f5f7ff;
 }
 </style>
