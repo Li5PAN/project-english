@@ -69,6 +69,16 @@ export default {
         requiresAuth: true,
         role: 'student'
       }
+    },
+    {
+      path: 'change-class',
+      name: 'ChangeClass',
+      component: () => import('../../pages/student/change-class.vue'),
+      meta: {
+        title: '换班中心',
+        requiresAuth: true,
+        role: 'student'
+      }
     }
   ]
 }

@@ -61,9 +61,9 @@ function getItem(label, key, icon, children) {
 const items = [
   getItem('首页', 'home', HomeOutlined),
   getItem('单词学习', 'word-learn', BookOutlined),
-  getItem('我的错题', 'my-errors', TeamOutlined),
   getItem('我的班级', 'my-class', CarryOutOutlined),
   getItem('我的任务', 'my-tasks', CarryOutOutlined),
+  getItem('我的错题', 'my-errors', TeamOutlined),
   getItem('我的学情', 'my-progress', BarChartOutlined),
 ]
 
@@ -73,9 +73,9 @@ const rootSubmenuKeys = []
 const menuTitles = {
   home: '首页',
   'word-learn': '单词学习',
-  'my-errors': '我的错题',
   'my-class': '我的班级',
   'my-tasks': '我的任务',
+  'my-errors': '我的错题',
   'my-progress': '我的学情'
 }
 
