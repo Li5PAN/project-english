@@ -21,21 +21,11 @@ export default {
       }
     },
     {
-      path: 'word-query',
-      name: 'WordQuery',
-      component: () => import('../../pages/student/word-query.vue'),
+      path: 'word-learn',
+      name: 'WordLearn',
+      component: () => import('../../pages/student/word-learn.vue'),
       meta: {
-        title: '单词查询',
-        requiresAuth: true,
-        role: 'student'
-      }
-    },
-    {
-      path: 'word-training',
-      name: 'WordTraining',
-      component: () => import('../../pages/student/word-training.vue'),
-      meta: {
-        title: '单词训练',
+        title: '单词学习',
         requiresAuth: true,
         role: 'student'
       }
@@ -76,6 +66,16 @@ export default {
       component: () => import('../../pages/student/my-progress.vue'),
       meta: {
         title: '我的学情',
+        requiresAuth: true,
+        role: 'student'
+      }
+    },
+    {
+      path: 'change-class',
+      name: 'ChangeClass',
+      component: () => import('../../pages/student/change-class.vue'),
+      meta: {
+        title: '换班中心',
         requiresAuth: true,
         role: 'student'
       }

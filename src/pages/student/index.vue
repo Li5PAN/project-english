@@ -36,7 +36,6 @@ import { ref, onMounted, computed, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import HomeOutlined from '@ant-design/icons-vue/HomeOutlined'
 import BookOutlined from '@ant-design/icons-vue/BookOutlined'
-import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
 import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
 import CarryOutOutlined from '@ant-design/icons-vue/CarryOutOutlined'
 import BarChartOutlined from '@ant-design/icons-vue/BarChartOutlined'
@@ -61,26 +60,22 @@ function getItem(label, key, icon, children) {
 // 菜单配置
 const items = [
   getItem('首页', 'home', HomeOutlined),
-  getItem('我的学习', 'word-study', BookOutlined, [
-    getItem('单词学习', 'word-query'),
-    getItem('单词训练', 'word-training'),
-  ]),
-  getItem('我的错题', 'my-errors', FileTextOutlined),
-  getItem('我的班级', 'my-class', TeamOutlined),
+  getItem('单词学习', 'word-learn', BookOutlined),
+  getItem('我的班级', 'my-class', CarryOutOutlined),
   getItem('我的任务', 'my-tasks', CarryOutOutlined),
+  getItem('我的错题', 'my-errors', TeamOutlined),
   getItem('我的学情', 'my-progress', BarChartOutlined),
 ]
 
 // 一级菜单的 keys（用于手风琴效果）
-const rootSubmenuKeys = ['word-study']
+const rootSubmenuKeys = []
 
 const menuTitles = {
   home: '首页',
-  'word-query': '单词查询',
-  'word-training': '单词训练',
-  'my-errors': '我的错题',
+  'word-learn': '单词学习',
   'my-class': '我的班级',
   'my-tasks': '我的任务',
+  'my-errors': '我的错题',
   'my-progress': '我的学情'
 }
 
@@ -108,30 +103,31 @@ onMounted(() => {
   
   // 根据当前路由设置选中的菜单
   const path = route.path
-  if (path.includes('word-query')) {
-    selectedKeys.value = ['word-query']
-    openKeys.value = ['word-study']
-  } else if (path.includes('word-training')) {
-    selectedKeys.value = ['word-training']
-    openKeys.value = ['word-study']
+  if (path.includes('word-learn')) {
+    selectedKeys.value = ['word-learn']
+    openKeys.value = []
   } else if (path.includes('my-errors')) {
     selectedKeys.value = ['my-errors']
+    openKeys.value = []
   } else if (path.includes('my-class')) {
     selectedKeys.value = ['my-class']
+    openKeys.value = []
   } else if (path.includes('my-tasks')) {
     selectedKeys.value = ['my-tasks']
+    openKeys.value = []
   } else if (path.includes('my-progress')) {
     selectedKeys.value = ['my-progress']
+    openKeys.value = []
   } else {
     selectedKeys.value = ['home']
+    openKeys.value = []
   }
 })
 
 const handleMenuClick = ({ key }) => {
   const routes = {
     home: '/student/home',
-    'word-query': '/student/word-query',
-    'word-training': '/student/word-training',
+    'word-learn': '/student/word-learn',
     'my-errors': '/student/my-errors',
     'my-class': '/student/my-class',
     'my-tasks': '/student/my-tasks',
