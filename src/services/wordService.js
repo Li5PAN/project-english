@@ -26,6 +26,31 @@ const MOCK_WORDS_DATA = {
     ],
     wordForms: []
   },
+  apple: {
+    word: 'apple',
+    ukPhonetic: 'ˈæpl',
+    usPhonetic: 'ˈæpl',
+    ukSpeech: 'https://dict.youdao.com/dictvoice?audio=apple&type=1',
+    usSpeech: 'https://dict.youdao.com/dictvoice?audio=apple&type=2',
+    meanings: ['n. 苹果；苹果树；苹果公司'],
+    webMeanings: [
+      { phrase: 'Apple Inc.', meaning: '苹果公司' },
+      { phrase: 'apple pie', meaning: '苹果派' }
+    ],
+    examples: [
+      {
+        sentence: 'An apple a day keeps the doctor away.',
+        translation: '一天一苹果，医生远离我。',
+        sentenceSpeech: ''
+      },
+      {
+        sentence: 'I like eating apples.',
+        translation: '我喜欢吃苹果。',
+        sentenceSpeech: ''
+      }
+    ],
+    wordForms: ['apples']
+  },
   world: {
     word: 'world',
     ukPhonetic: 'wɜːld',
@@ -214,6 +239,32 @@ function getWordData(word) {
 }
 
 /**
+ * 中文到英文的映射（用于汉译英查询）
+ */
+const CHINESE_TO_ENGLISH = {
+  '苹果': 'apple',
+  '你好': 'hello',
+  '世界': 'world',
+  '学习': 'study',
+  '学会': 'learn',
+  '练习': 'practice',
+  '提高': 'improve',
+  '知识': 'knowledge',
+  '教育': 'education',
+  '老师': 'teacher',
+  '学生': 'student'
+}
+
+/**
+ * 检测是否为中文
+ * @param {string} text - 文本
+ * @returns {boolean} - 是否包含中文
+ */
+function isChinese(text) {
+  return /[\u4e00-\u9fa5]/.test(text)
+}
+
+/**
  * 获取学生的学习单词列表
  * @param {Object} options - 查询选项
  * @returns {Promise<Array>} - 返回单词数据数组
@@ -296,7 +347,22 @@ export async function searchWord(keyword) {
   // 模拟网络延迟
   await new Promise(resolve => setTimeout(resolve, 300))
   
-  const wordData = getWordData(keyword)
+  let searchKey = keyword
+  
+  // 如果是中文，尝试转换为英文
+  if (isChinese(keyword)) {
+    const englishWord = CHINESE_TO_ENGLISH[keyword]
+    if (englishWord) {
+      searchKey = englishWord
+    } else {
+      return {
+        success: false,
+        message: `未找到"${keyword}"对应的英文单词`
+      }
+    }
+  }
+  
+  const wordData = getWordData(searchKey)
   
   return {
     success: true,

@@ -36,7 +36,6 @@ import { ref, onMounted, computed, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import HomeOutlined from '@ant-design/icons-vue/HomeOutlined'
 import BookOutlined from '@ant-design/icons-vue/BookOutlined'
-import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
 import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
 import CarryOutOutlined from '@ant-design/icons-vue/CarryOutOutlined'
 import BarChartOutlined from '@ant-design/icons-vue/BarChartOutlined'
@@ -62,7 +61,6 @@ function getItem(label, key, icon, children) {
 const items = [
   getItem('首页', 'home', HomeOutlined),
   getItem('单词学习', 'word-learn', BookOutlined),
-  getItem('单词训练', 'word-training', FileTextOutlined),
   getItem('我的错题', 'my-errors', TeamOutlined),
   getItem('我的班级', 'my-class', CarryOutOutlined),
   getItem('我的任务', 'my-tasks', CarryOutOutlined),
@@ -75,7 +73,6 @@ const rootSubmenuKeys = []
 const menuTitles = {
   home: '首页',
   'word-learn': '单词学习',
-  'word-training': '单词训练',
   'my-errors': '我的错题',
   'my-class': '我的班级',
   'my-tasks': '我的任务',
@@ -109,9 +106,6 @@ onMounted(() => {
   if (path.includes('word-learn')) {
     selectedKeys.value = ['word-learn']
     openKeys.value = []
-  } else if (path.includes('word-training')) {
-    selectedKeys.value = ['word-training']
-    openKeys.value = []
   } else if (path.includes('my-errors')) {
     selectedKeys.value = ['my-errors']
     openKeys.value = []
@@ -134,7 +128,6 @@ const handleMenuClick = ({ key }) => {
   const routes = {
     home: '/student/home',
     'word-learn': '/student/word-learn',
-    'word-training': '/student/word-training',
     'my-errors': '/student/my-errors',
     'my-class': '/student/my-class',
     'my-tasks': '/student/my-tasks',

@@ -19,12 +19,24 @@
       </div>
       
       <div class="mode-tabs">
+        <!-- 搜索模式下显示单词学习按钮 -->
+        <a-button 
+          v-if="isSearchMode"
+          type="primary"
+          size="large"
+          @click="startLearningFromSearch"
+        >
+          单词学习
+        </a-button>
+        
+        <!-- 学习模式下显示模式切换 -->
         <a-radio-group 
+          v-else
           v-model:value="learningMode" 
           button-style="solid"
-          :disabled="isSearchMode || loadingWords"
+          :disabled="loadingWords"
         >
-          <a-radio-button value="recognize">单词认识</a-radio-button>
+          <a-radio-button value="recognize">单词学习</a-radio-button>
           <a-radio-button value="spell">看中文拼写英文</a-radio-button>
           <a-radio-button value="fill">单词填空</a-radio-button>
         </a-radio-group>
@@ -427,6 +439,28 @@ const handleClear = () => {
   searchKeyword.value = ''
   searchResult.value = null
   searchError.value = ''
+}
+
+// 从搜索结果开始学习
+const startLearningFromSearch = () => {
+  if (!searchResult.value) {
+    message.warning('请先搜索单词')
+    return
+  }
+  
+  // 将搜索结果添加到单词列表
+  wordList.value = [searchResult.value]
+  currentIndex.value = 0
+  
+  // 清空搜索状态，进入学习模式
+  searchKeyword.value = ''
+  searchResult.value = null
+  searchError.value = ''
+  
+  // 重置学习状态
+  resetLearningState()
+  
+  message.success('开始学习该单词')
 }
 
 // 播放发音

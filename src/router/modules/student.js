@@ -31,26 +31,6 @@ export default {
       }
     },
     {
-      path: 'word-learn-test',
-      name: 'WordLearnTest',
-      component: () => import('../../pages/student/word-learn-test.vue'),
-      meta: {
-        title: '单词学习测试',
-        requiresAuth: true,
-        role: 'student'
-      }
-    },
-    {
-      path: 'word-training',
-      name: 'WordTraining',
-      component: () => import('../../pages/student/word-training.vue'),
-      meta: {
-        title: '单词训练',
-        requiresAuth: true,
-        role: 'student'
-      }
-    },
-    {
       path: 'my-errors',
       name: 'MyErrors',
       component: () => import('../../pages/student/my-errors.vue'),
