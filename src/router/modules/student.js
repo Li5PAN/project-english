@@ -21,11 +21,21 @@ export default {
       }
     },
     {
-      path: 'word-query',
-      name: 'WordQuery',
-      component: () => import('../../pages/student/word-query.vue'),
+      path: 'word-learn',
+      name: 'WordLearn',
+      component: () => import('../../pages/student/word-learn.vue'),
       meta: {
-        title: '单词查询',
+        title: '单词学习',
+        requiresAuth: true,
+        role: 'student'
+      }
+    },
+    {
+      path: 'word-learn-test',
+      name: 'WordLearnTest',
+      component: () => import('../../pages/student/word-learn-test.vue'),
+      meta: {
+        title: '单词学习测试',
         requiresAuth: true,
         role: 'student'
       }
