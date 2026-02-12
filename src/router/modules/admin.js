@@ -19,6 +19,26 @@ export default {
         requiresAuth: true,
         role: 'admin'
       }
+    },
+    {
+      path: 'class-management',
+      name: 'ClassManagement',
+      component: () => import('../../pages/admin/class-management.vue'),
+      meta: {
+        title: '班级管理',
+        requiresAuth: true,
+        role: 'admin'
+      }
+    },
+    {
+      path: 'user-management',
+      name: 'UserManagement',
+      component: () => import('../../pages/admin/user-management.vue'),
+      meta: {
+        title: '人员管理',
+        requiresAuth: true,
+        role: 'admin'
+      }
     }
   ]
 }
