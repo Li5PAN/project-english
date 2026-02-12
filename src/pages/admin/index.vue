@@ -31,10 +31,13 @@
 
 <script setup>
 import { ref, onMounted, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import HomeOutlined from '@ant-design/icons-vue/HomeOutlined'
+import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
+import UserOutlined from '@ant-design/icons-vue/UserOutlined'
 
 const router = useRouter()
+const route = useRoute()
 
 const selectedKeys = ref(['home'])
 const userInfo = ref({})
@@ -49,9 +52,11 @@ function getItem(label, key, icon, children) {
   }
 }
 
-// 菜单配置 - 使用计算属性确保响应式
+// 菜单配置
 const menuItems = [
   getItem('首页', 'home', HomeOutlined),
+  getItem('班级管理', 'class-management', TeamOutlined),
+  getItem('人员管理', 'user-management', UserOutlined),
 ]
 
 onMounted(() => {
@@ -61,17 +66,34 @@ onMounted(() => {
   } else {
     router.push('/login')
   }
+  
+  // 根据当前路由设置选中的菜单
+  const path = route.path
+  if (path.includes('class-management')) {
+    selectedKeys.value = ['class-management']
+  } else if (path.includes('user-management')) {
+    selectedKeys.value = ['user-management']
+  } else {
+    selectedKeys.value = ['home']
+  }
 })
 
 const handleMenuClick = ({ key }) => {
-  if (key === 'home') {
-    router.push('/admin/home')
+  const routes = {
+    home: '/admin/home',
+    'class-management': '/admin/class-management',
+    'user-management': '/admin/user-management'
+  }
+  
+  if (routes[key]) {
+    router.push(routes[key])
   }
 }
 
 const logout = () => {
   localStorage.removeItem('userInfo')
-  router.push('/login')
+  // 使用 replace 替代 push，避免可以返回
+  router.replace('/login')
 }
 </script>
 
