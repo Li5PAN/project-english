@@ -1,28 +1,31 @@
 <template>
   <div class="my-errors-container">
-    <a-card title="我的错题">
-      <template #extra>
-        <a-space>
-          <a-button type="primary" @click="showImportModal">
-            <UploadOutlined /> 导入错题
-          </a-button>
-          <a-dropdown>
-            <template #overlay>
-              <a-menu @click="handleExport">
-                <a-menu-item key="excel">
-                  <FileExcelOutlined /> 导出为 Excel
-                </a-menu-item>
-                <a-menu-item key="pdf">
-                  <FilePdfOutlined /> 导出为 PDF
-                </a-menu-item>
-              </a-menu>
-            </template>
-            <a-button>
-              <DownloadOutlined /> 导出错题
-              <DownOutlined />
+    <a-card>
+      <template #title>
+        <div class="card-title-wrapper">
+          <span class="title-text">我的错题</span>
+          <a-space :size="8" class="title-buttons">
+            <a-button type="primary" @click="showImportModal">
+              <UploadOutlined /> 导入错题
             </a-button>
-          </a-dropdown>
-        </a-space>
+            <a-dropdown>
+              <template #overlay>
+                <a-menu @click="handleExport">
+                  <a-menu-item key="excel">
+                    <FileExcelOutlined /> 导出为 Excel
+                  </a-menu-item>
+                  <a-menu-item key="pdf">
+                    <FilePdfOutlined /> 导出为 PDF
+                  </a-menu-item>
+                </a-menu>
+              </template>
+              <a-button>
+                <DownloadOutlined /> 导出错题
+                <DownOutlined />
+              </a-button>
+            </a-dropdown>
+          </a-space>
+        </div>
       </template>
 
       <!-- 筛选区域 -->
@@ -470,6 +473,21 @@ const saveEdit = () => {
 <style scoped>
 .my-errors-container {
   padding: 20px;
+}
+
+.card-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.title-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.title-buttons {
+  margin-left: 10px;
 }
 
 .filter-section {

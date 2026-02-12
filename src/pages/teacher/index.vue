@@ -71,7 +71,11 @@ const handleMenuClick = ({ key }) => {
 
 const logout = () => {
   localStorage.removeItem('userInfo')
-  router.push('/login')
+  // 使用 replace 替代 push，避免可以返回
+  router.replace('/login').then(() => {
+    // 确保跳转完成后刷新页面状态
+    window.location.reload()
+  })
 }
 </script>
 

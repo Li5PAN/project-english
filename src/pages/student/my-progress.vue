@@ -63,12 +63,25 @@
     </a-row>
 
     <!-- 底部班级排名 -->
-    <a-card title="班级排名">
-      <template #extra>
-        <a-radio-group v-model:value="rankType" button-style="solid">
-          <a-radio-button value="time">按学习时长</a-radio-button>
-          <a-radio-button value="words">按掌握单词量</a-radio-button>
-        </a-radio-group>
+    <a-card>
+      <template #title>
+        <div class="card-title-wrapper">
+          <span class="title-text">班级排名</span>
+          <a-space :size="5" class="title-buttons">
+            <a-button 
+              :type="rankType === 'time' ? 'primary' : 'default'"
+              @click="rankType = 'time'"
+            >
+              按学习时长
+            </a-button>
+            <a-button 
+              :type="rankType === 'words' ? 'primary' : 'default'"
+              @click="rankType = 'words'"
+            >
+              按掌握单词量
+            </a-button>
+          </a-space>
+        </div>
       </template>
 
       <a-table
@@ -393,5 +406,20 @@ onUnmounted(() => {
 <style scoped>
 .my-progress-container {
   padding: 20px;
+}
+
+.card-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.title-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.title-buttons {
+  margin-left: 10px;
 }
 </style>

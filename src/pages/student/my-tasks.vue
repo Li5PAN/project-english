@@ -1,21 +1,24 @@
 <template>
   <div class="my-tasks-container">
-    <a-card title="我的任务">
-      <template #extra>
-        <a-space>
-          <a-button 
-            :type="taskStatus === 'pending' ? 'primary' : 'default'"
-            @click="taskStatus = 'pending'"
-          >
-            未完成
-          </a-button>
-          <a-button 
-            :type="taskStatus === 'completed' ? 'primary' : 'default'"
-            @click="taskStatus = 'completed'"
-          >
-            已完成
-          </a-button>
-        </a-space>
+    <a-card>
+      <template #title>
+        <div class="card-title-wrapper">
+          <span class="title-text">我的任务</span>
+          <a-space :size="8" class="title-buttons">
+            <a-button 
+              :type="taskStatus === 'pending' ? 'primary' : 'default'"
+              @click="taskStatus = 'pending'"
+            >
+              未完成
+            </a-button>
+            <a-button 
+              :type="taskStatus === 'completed' ? 'primary' : 'default'"
+              @click="taskStatus = 'completed'"
+            >
+              已完成
+            </a-button>
+          </a-space>
+        </div>
       </template>
 
       <!-- 未完成任务列表 -->
@@ -435,6 +438,21 @@ const generateTaskDetail = (count) => {
 <style scoped>
 .my-tasks-container {
   padding: 20px;
+}
+
+.card-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.title-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.title-buttons {
+  margin-left: 10px;
 }
 
 .task-modal-content {
