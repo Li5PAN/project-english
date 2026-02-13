@@ -34,7 +34,6 @@
           v-else
           v-model:value="learningMode" 
           button-style="solid"
-          :disabled="loadingWords"
         >
           <a-radio-button value="recognize">单词学习</a-radio-button>
           <a-radio-button value="spell">看中文拼写英文</a-radio-button>
@@ -45,22 +44,13 @@
 
     <!-- 核心展示区 -->
     <div class="content-section">
-      <!-- 加载状态 -->
-      <div v-if="loadingWords" class="loading-container">
-        <a-spin size="large">
-          <template #indicator>
-            <LoadingOutlined style="font-size: 48px" spin />
-          </template>
-        </a-spin>
-        <p class="loading-text">
-          正在加载单词... 
-          <span v-if="loadingProgress.total > 0">
-            ({{ loadingProgress.current }}/{{ loadingProgress.total }})
-          </span>
-        </p>
+      <!-- 初始加载状态 -->
+      <div v-if="isInitialLoading" class="loading-container">
+        <a-spin size="large" tip="正在加载单词..." />
       </div>
+      
       <!-- 搜索模式 -->
-      <div v-if="isSearchMode" class="search-result">
+      <div v-else-if="isSearchMode" class="search-result">
         <a-spin :spinning="searching">
           <div v-if="searchResult" class="word-detail">
             <!-- 单词和发音 -->
@@ -157,7 +147,7 @@
       </div>
 
       <!-- 学习模式 -->
-      <div v-else-if="!loadingWords && wordList.length > 0" class="learning-mode">
+      <div v-else-if="wordList.length > 0" class="learning-mode">
         <!-- 单词认识模式 -->
         <div v-if="learningMode === 'recognize'" class="recognize-mode">
           <div class="word-card">
@@ -344,16 +334,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="!loadingWords && wordList.length === 0" class="empty-state">
-        <a-empty description="暂无学习单词">
-          <template #description>
-            <p>暂无学习单词，请联系老师分配学习任务</p>
-          </template>
-          <a-button type="primary" @click="loadWords">重新加载</a-button>
-        </a-empty>
-      </div>
     </div>
   </div>
 </template>
@@ -361,7 +341,7 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue'
 import { message } from 'ant-design-vue'
-import { SoundOutlined, StarOutlined, StarFilled, LoadingOutlined } from '@ant-design/icons-vue'
+import { SoundOutlined, StarOutlined, StarFilled } from '@ant-design/icons-vue'
 import { searchWord, getStudentWordsWithDetails, addToFavorites, removeFromFavorites, recordProgress } from '../../services/wordService'
 
 // 搜索相关
@@ -374,12 +354,9 @@ const searchError = ref('')
 const learningMode = ref('recognize')
 const isSearchMode = computed(() => !!searchResult.value)
 
-// 单词列表加载状态
-const loadingWords = ref(false)
-const loadingProgress = ref({ current: 0, total: 0 })
-
 // 单词列表（从服务动态加载）
 const wordList = ref([])
+const isInitialLoading = ref(true) // 初始加载标识
 
 const currentIndex = ref(0)
 const currentWord = computed(() => wordList.value[currentIndex.value] || {})
@@ -596,17 +573,11 @@ const handleFillInput = (index) => {
 
 // 加载单词列表
 const loadWords = async () => {
-  loadingWords.value = true
-  loadingProgress.value = { current: 0, total: 0 }
+  isInitialLoading.value = true
   
   try {
     // 获取学生的学习单词（带详细信息）
-    const words = await getStudentWordsWithDetails(
-      { limit: 10 }, // 可以根据需要调整数量
-      (current, total) => {
-        loadingProgress.value = { current, total }
-      }
-    )
+    const words = await getStudentWordsWithDetails({ limit: 10 })
     
     wordList.value = words
     
@@ -617,7 +588,7 @@ const loadWords = async () => {
     console.error('加载单词失败:', error)
     message.error('加载单词失败，请刷新页面重试')
   } finally {
-    loadingWords.value = false
+    isInitialLoading.value = false
   }
 }
 
@@ -660,13 +631,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 400px;
-  gap: 24px;
-}
-
-.loading-text {
-  font-size: 16px;
-  color: #666;
-  margin: 0;
 }
 
 /* 空状态 */

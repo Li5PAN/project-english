@@ -141,15 +141,24 @@
           style="margin-top: 16px"
         />
         
-        <a-divider>班级前15名轮播</a-divider>
+        <a-divider>班级学习趋势（近7天）</a-divider>
         
-        <div class="rank-carousel-container">
+        <a-row :gutter="16">
+          <a-col :span="24">
+            <div ref="trendChartRef" style="width: 100%; height: 350px;"></div>
+          </a-col>
+        </a-row>
+        
+        <a-divider>班级排行榜 Top 15</a-divider>
+        
+        <div class="rank-table-container">
           <a-table 
             :columns="rankColumns" 
-            :data-source="displayRankData" 
+            :data-source="topRankData" 
             :pagination="false"
-            size="small"
-            :scroll="{ y: 300 }"
+            size="middle"
+            :scroll="{ y: 400 }"
+            class="scrolling-table"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'rank'">
@@ -202,10 +211,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, TeamOutlined, TrophyOutlined } from '@ant-design/icons-vue'
+import * as echarts from 'echarts'
 
 const router = useRouter()
 
@@ -348,8 +358,95 @@ const topRankData = ref([
 const currentIndex = ref(0)
 const itemsPerPage = 5
 let carouselTimer = null
+let scrollTimer = null
 
-// 当前显示的数据（循环显示）
+// 趋势图表
+const trendChartRef = ref(null)
+
+// 初始化趋势图表
+const initTrendChart = () => {
+  if (!trendChartRef.value) return
+  
+  const chart = echarts.init(trendChartRef.value)
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+      },
+    },
+    legend: {
+      data: ['班级平均分', '我的分数', '班级完成率'],
+      bottom: 0,
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '50px',
+      top: '10%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '分数',
+        position: 'left',
+        max: 100,
+      },
+      {
+        type: 'value',
+        name: '完成率(%)',
+        position: 'right',
+        max: 100,
+      },
+    ],
+    series: [
+      {
+        name: '班级平均分',
+        type: 'line',
+        data: [78, 80, 82, 81, 83, 85, 84],
+        smooth: true,
+        itemStyle: {
+          color: '#1890ff',
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+            { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+          ]),
+        },
+      },
+      {
+        name: '我的分数',
+        type: 'line',
+        data: [82, 85, 84, 86, 88, 90, 87],
+        smooth: true,
+        itemStyle: {
+          color: '#52c41a',
+        },
+      },
+      {
+        name: '班级完成率',
+        type: 'line',
+        yAxisIndex: 1,
+        data: [75, 78, 80, 82, 85, 87, 88],
+        smooth: true,
+        itemStyle: {
+          color: '#faad14',
+        },
+      },
+    ],
+  }
+  chart.setOption(option)
+  window.addEventListener('resize', () => chart.resize())
+}
+
+// 当前显示的数据（循环显示）- 保留用于兼容
 const displayRankData = computed(() => {
   const data = []
   for (let i = 0; i < itemsPerPage; i++) {
@@ -358,6 +455,29 @@ const displayRankData = computed(() => {
   }
   return data
 })
+
+// 启动表格自动滚动
+const startTableScroll = () => {
+  nextTick(() => {
+    const tableBody = document.querySelector('.scrolling-table .ant-table-body')
+    if (!tableBody) return
+    
+    let scrollTop = 0
+    const scrollStep = 1 // 每次滚动的像素
+    const scrollInterval = 50 // 滚动间隔（毫秒）
+    
+    scrollTimer = setInterval(() => {
+      scrollTop += scrollStep
+      tableBody.scrollTop = scrollTop
+      
+      // 当滚动到底部时，重置到顶部实现循环
+      if (tableBody.scrollTop >= tableBody.scrollHeight - tableBody.clientHeight) {
+        scrollTop = 0
+        tableBody.scrollTop = 0
+      }
+    }, scrollInterval)
+  })
+}
 
 // 启动轮播
 const startCarousel = () => {
@@ -371,6 +491,14 @@ const stopCarousel = () => {
   if (carouselTimer) {
     clearInterval(carouselTimer)
     carouselTimer = null
+  }
+}
+
+// 停止表格滚动
+const stopTableScroll = () => {
+  if (scrollTimer) {
+    clearInterval(scrollTimer)
+    scrollTimer = null
   }
 }
 
@@ -415,6 +543,7 @@ const confirmExit = () => {
   hasClass.value = false
   isFirstJoin.value = false // 退出后再入班就不是首次了
   stopCarousel()
+  stopTableScroll()
   
   // 重置为上次等级或D级标签
   selectedLevel.value = lastClassLevel.value || 'D'
@@ -428,12 +557,14 @@ const goToChangeClass = () => {
 // 生命周期
 onMounted(() => {
   if (hasClass.value) {
-    startCarousel()
+    initTrendChart()
+    startTableScroll()
   }
 })
 
 onUnmounted(() => {
   stopCarousel()
+  stopTableScroll()
 })
 </script>
 
@@ -500,16 +631,34 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.rank-carousel-container {
+.rank-table-container {
   position: relative;
   overflow: hidden;
 }
 
-.rank-carousel-container :deep(.ant-table-body) {
-  transition: transform 0.5s ease-in-out;
+.scrolling-table :deep(.ant-table-body) {
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
 }
 
-.rank-carousel-container :deep(.ant-table-row) {
-  transition: all 0.5s ease-in-out;
+.scrolling-table :deep(.ant-table-body)::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrolling-table :deep(.ant-table-body)::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+.scrolling-table :deep(.ant-table-body)::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+.scrolling-table :deep(.ant-table-row) {
+  transition: background-color 0.3s;
+}
+
+.scrolling-table :deep(.ant-table-row:hover) {
+  background-color: #f5f5f5;
 }
 </style>
