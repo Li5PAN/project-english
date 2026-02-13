@@ -20,25 +20,62 @@
       
       <div class="mode-tabs">
         <!-- 搜索模式下显示单词学习按钮 -->
-        <a-button 
-          v-if="isSearchMode"
-          type="primary"
-          size="large"
-          @click="startLearningFromSearch"
-        >
-          单词学习
-        </a-button>
+        <a-space v-if="isSearchMode" :size="12">
+          <a-button 
+            type="primary"
+            size="large"
+            @click="startLearningFromSearch"
+          >
+            单词学习
+          </a-button>
+          <a-button 
+            size="large"
+            @click="goToFavorites"
+          >
+            <StarFilled style="color: #faad14;" /> 查看收藏
+          </a-button>
+        </a-space>
         
         <!-- 学习模式下显示模式切换 -->
-        <a-radio-group 
-          v-else
-          v-model:value="learningMode" 
-          button-style="solid"
-        >
-          <a-radio-button value="recognize">单词学习</a-radio-button>
-          <a-radio-button value="spell">看中文拼写英文</a-radio-button>
-          <a-radio-button value="fill">单词填空</a-radio-button>
-        </a-radio-group>
+        <a-space v-else :size="12">
+          <a-button 
+            :type="learningMode === 'recognize' ? 'primary' : 'default'"
+            size="large"
+            @click="learningMode = 'recognize'"
+          >
+            单词学习
+          </a-button>
+          <a-button 
+            :type="learningMode === 'spell' ? 'primary' : 'default'"
+            size="large"
+            @click="learningMode = 'spell'"
+          >
+            看中文拼写英文
+          </a-button>
+          <a-button 
+            :type="learningMode === 'fill' ? 'primary' : 'default'"
+            size="large"
+            @click="learningMode = 'fill'"
+          >
+            单词填空
+          </a-button>
+          <a-button 
+            size="large"
+            @click="goToFavorites"
+          >
+            <StarFilled style="color: #faad14;" /> 查看收藏
+          </a-button>
+          <a-tooltip placement="bottom">
+            <template #title>
+              <div style="text-align: left;">
+                <div>回车键: 下一个单词</div>
+              </div>
+            </template>
+            <a-button size="large" type="text">
+              <QuestionCircleOutlined />
+            </a-button>
+          </a-tooltip>
+        </a-space>
       </div>
     </div>
 
@@ -217,7 +254,7 @@
           <div class="progress-footer">
             <span class="progress-text">{{ currentIndex + 1 }} / {{ wordList.length }}</span>
             <a-button type="primary" size="large" @click="nextWord">
-              下一个
+              下一个 (Enter)
             </a-button>
           </div>
         </div>
@@ -339,10 +376,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, onUnmounted, h } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { SoundOutlined, StarOutlined, StarFilled } from '@ant-design/icons-vue'
+import { SoundOutlined, StarOutlined, StarFilled, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { searchWord, getStudentWordsWithDetails, addToFavorites, removeFromFavorites, recordProgress } from '../../services/wordService'
+
+const router = useRouter()
 
 // 搜索相关
 const searchKeyword = ref('')
@@ -595,7 +635,34 @@ const loadWords = async () => {
 onMounted(() => {
   // 加载单词列表
   loadWords()
+  
+  // 添加键盘事件监听
+  window.addEventListener('keydown', handleKeyPress)
 })
+
+onUnmounted(() => {
+  // 移除键盘事件监听
+  window.removeEventListener('keydown', handleKeyPress)
+})
+
+// 快捷键处理
+const handleKeyPress = (event) => {
+  // 如果在输入框中,不处理快捷键
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    return
+  }
+  
+  // 回车键 - 下一个单词
+  if (event.code === 'Enter' && !isSearchMode.value && wordList.value.length > 0) {
+    event.preventDefault()
+    nextWord()
+  }
+}
+
+// 跳转到收藏页面
+const goToFavorites = () => {
+  router.push('/student/word-favorites')
+}
 </script>
 
 <style scoped>
@@ -852,3 +919,112 @@ onMounted(() => {
   padding: 0;
 }
 </style>
+
+
+/* 翻转卡片样式 */
+.flip-card {
+  width: 100%;
+  max-width: 700px;
+  height: 500px;
+  perspective: 1000px;
+  cursor: pointer;
+  margin: 0 auto;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+.flip-card-front {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.flip-card-front .word-title {
+  color: white;
+  font-size: 64px;
+  margin: 24px 0;
+}
+
+.flip-card-front .phonetic-area {
+  margin-top: 16px;
+}
+
+.flip-card-front .phonetic {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+}
+
+.card-hint {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  overflow-y: auto;
+}
+
+.flip-card-back .word-title {
+  font-size: 36px;
+  color: #1890ff;
+  margin-bottom: 24px;
+}
+
+.flip-card-back .meanings-list {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.flip-card-back .examples-section {
+  width: 100%;
+  text-align: left;
+}
+
+.flip-card-back .examples-section h3 {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.flip-card-back .example-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.flip-card-back .favorite-btn {
+  margin-top: 16px;
+}

@@ -371,6 +371,22 @@ export async function searchWord(keyword) {
 }
 
 /**
+ * 获取收藏的单词列表
+ * @returns {Promise<Array>} - 返回收藏的单词列表
+ */
+export async function getFavoriteWords() {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 300))
+  
+  // 模拟返回收藏的单词（带完整详情）
+  const favoriteWordKeys = ['hello', 'apple', 'study', 'learn']
+  const favoriteWords = favoriteWordKeys.map(word => getWordData(word))
+  
+  console.log('获取收藏单词列表:', favoriteWords)
+  return favoriteWords
+}
+
+/**
  * 添加单词到收藏
  * @param {string} word - 单词
  * @returns {Promise<Object>} - 返回操作结果

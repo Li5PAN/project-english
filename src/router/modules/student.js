@@ -31,6 +31,16 @@ export default {
       }
     },
     {
+      path: 'word-favorites',
+      name: 'WordFavorites',
+      component: () => import('../../pages/student/word-favorites.vue'),
+      meta: {
+        title: '收藏单词',
+        requiresAuth: true,
+        role: 'student'
+      }
+    },
+    {
       path: 'my-errors',
       name: 'MyErrors',
       component: () => import('../../pages/student/my-errors.vue'),
