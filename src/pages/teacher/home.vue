@@ -174,12 +174,19 @@ let errorChart = null
 let levelChart = null
 
 // 初始化各班级任务完成率对比图
+// 数据来源: 教师的班级列表
+// 统计规则: 每日下午5点整点后统计当日任务完成率
 const initTaskCompletionChart = () => {
   if (taskChart) {
     taskChart.dispose()
   }
   
   taskChart = echarts.init(taskCompletionChart.value)
+  
+  // TODO: 从后端获取教师的班级列表和完成率数据
+  // 示例数据结构:
+  // const classData = await fetchTeacherClasses()
+  // const completionData = await fetchDailyCompletion(classData, '17:00')
   
   const option = {
     tooltip: {
@@ -189,17 +196,25 @@ const initTaskCompletionChart = () => {
       }
     },
     legend: {
-      data: ['完成率']
+      data: ['完成率'],
+      bottom: 0,  // 放置在底部
+      left: 'center',  // 水平居中
+      itemGap: 20  // 图例项之间的间距
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      bottom: '40px',  // 增加底部空间，为图例留出位置（横坐标 + 8px间距 + 图例高度）
+      top: '10%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
-      data: ['A级-高级班', 'B级-中级班', 'C级-初级班', 'D级-基础班', 'A级-进阶班', 'B级-提高班', 'C级-入门班', 'D级-启蒙班']
+      data: ['A级-高级班', 'B级-中级班', 'C级-初级班', 'D级-基础班', 'A级-进阶班', 'B级-提高班', 'C级-入门班', 'D级-启蒙班'],
+      axisLabel: {
+        interval: 0,
+        rotate: 30  // 旋转标签避免重叠
+      }
     },
     yAxis: {
       type: 'value',
@@ -243,12 +258,16 @@ const initActivityTrendChart = () => {
       trigger: 'axis'
     },
     legend: {
-      data: ['登录次数', '完成任务数', '练习题数']
+      data: ['完成任务数', '练习题数'],
+      bottom: 0,  // 放置在底部
+      left: 'center',  // 水平居中
+      itemGap: 20  // 图例项之间的间距
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      bottom: '40px',  // 增加底部空间，为图例留出位置（横坐标 + 8px间距 + 图例高度）
+      top: '10%',
       containLabel: true
     },
     xAxis: {
@@ -261,27 +280,18 @@ const initActivityTrendChart = () => {
     },
     series: [
       {
-        name: '登录次数',
-        type: 'line',
-        data: [120, 132, 101, 134, 90, 230, 210],
-        smooth: true,
-        itemStyle: {
-          color: '#1890ff'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
-            { offset: 1, color: 'rgba(24, 144, 255, 0.1)' }
-          ])
-        }
-      },
-      {
         name: '完成任务数',
         type: 'line',
         data: [220, 182, 191, 234, 290, 330, 310],
         smooth: true,
         itemStyle: {
           color: '#52c41a'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(82, 196, 26, 0.3)' },
+            { offset: 1, color: 'rgba(82, 196, 26, 0.1)' }
+          ])
         }
       },
       {
@@ -364,12 +374,18 @@ const initErrorTypeChart = () => {
 }
 
 // 初始化班级等级分布图
+// 数据来源: 教师的班级列表,按等级统计班级数量
 const initClassLevelChart = () => {
   if (levelChart) {
     levelChart.dispose()
   }
   
   levelChart = echarts.init(classLevelChart.value)
+  
+  // TODO: 从后端获取教师的班级列表并按等级分组统计
+  // 示例数据结构:
+  // const classData = await fetchTeacherClasses()
+  // const levelStats = groupByLevel(classData)
   
   const option = {
     tooltip: {
