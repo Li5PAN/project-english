@@ -1,0 +1,82 @@
+.admin-home-container {
+  padding: 0;
+}
+
+.statistics-section {
+  margin-bottom: 24px;
+}
+
+.statistics-section :deep(.ant-card) {
+  transition: all 0.3s;
+}
+
+.statistics-section :deep(.ant-card:hover) {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 待处理事项卡片样式 */
+.pending-section {
+  margin-bottom: 24px;
+}
+
+.pending-card {
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 12px;
+}
+
+.pending-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.pending-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pending-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pending-info {
+  flex: 1;
+}
+
+.pending-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.pending-count {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.charts-section :deep(.ant-card) {
+  height: 100%;
+}
+
+.charts-section :deep(.ant-card-head-title) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .statistics-section :deep(.ant-col) {
+    margin-bottom: 16px;
+  }
+  
+  .pending-section :deep(.ant-col) {
+    margin-bottom: 16px;
+  }
+}
