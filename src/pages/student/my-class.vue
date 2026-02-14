@@ -141,7 +141,7 @@
           style="margin-top: 16px"
         />
         
-        <a-divider>班级学习趋势（近7天）</a-divider>
+        <a-divider>班级学习趋势（近8周）</a-divider>
         
         <a-row :gutter="16">
           <a-col :span="24">
@@ -332,26 +332,26 @@ const rankColumns = [
   { title: '排名', dataIndex: 'rank', key: 'rank', width: 80 },
   { title: '姓名', dataIndex: 'name', key: 'name' },
   { title: '任务完成率', dataIndex: 'completionRate', key: 'completionRate', width: 120 },
-  { title: '平均分', dataIndex: 'avgScore', key: 'avgScore', width: 100 },
+  { title: '做题数', dataIndex: 'questionCount', key: 'questionCount', width: 100 },
 ]
 
 // 前15名数据
 const topRankData = ref([
-  { key: '1', rank: 1, name: '李明', completionRate: '100%', avgScore: 92, isMe: false },
-  { key: '2', rank: 2, name: '王芳', completionRate: '98%', avgScore: 90, isMe: false },
-  { key: '3', rank: 3, name: '张伟', completionRate: '96%', avgScore: 88, isMe: false },
-  { key: '4', rank: 4, name: '刘洋', completionRate: '95%', avgScore: 87, isMe: false },
-  { key: '5', rank: 5, name: '陈静', completionRate: '93%', avgScore: 86, isMe: false },
-  { key: '6', rank: 6, name: '赵强', completionRate: '92%', avgScore: 86, isMe: false },
-  { key: '7', rank: 7, name: '孙丽', completionRate: '90%', avgScore: 85, isMe: false },
-  { key: '8', rank: 8, name: '我', completionRate: '85%', avgScore: 85, isMe: true },
-  { key: '9', rank: 9, name: '周杰', completionRate: '83%', avgScore: 84, isMe: false },
-  { key: '10', rank: 10, name: '吴娜', completionRate: '82%', avgScore: 83, isMe: false },
-  { key: '11', rank: 11, name: '郑浩', completionRate: '80%', avgScore: 82, isMe: false },
-  { key: '12', rank: 12, name: '钱敏', completionRate: '78%', avgScore: 81, isMe: false },
-  { key: '13', rank: 13, name: '孙涛', completionRate: '76%', avgScore: 80, isMe: false },
-  { key: '14', rank: 14, name: '李娜', completionRate: '75%', avgScore: 79, isMe: false },
-  { key: '15', rank: 15, name: '王强', completionRate: '73%', avgScore: 78, isMe: false },
+  { key: '1', rank: 1, name: '李明', completionRate: '100%', questionCount: 120, isMe: false },
+  { key: '2', rank: 2, name: '王芳', completionRate: '98%', questionCount: 115, isMe: false },
+  { key: '3', rank: 3, name: '张伟', completionRate: '96%', questionCount: 110, isMe: false },
+  { key: '4', rank: 4, name: '刘洋', completionRate: '95%', questionCount: 108, isMe: false },
+  { key: '5', rank: 5, name: '陈静', completionRate: '93%', questionCount: 105, isMe: false },
+  { key: '6', rank: 6, name: '赵强', completionRate: '92%', questionCount: 102, isMe: false },
+  { key: '7', rank: 7, name: '孙丽', completionRate: '90%', questionCount: 98, isMe: false },
+  { key: '8', rank: 8, name: '我', completionRate: '85%', questionCount: 95, isMe: true },
+  { key: '9', rank: 9, name: '周杰', completionRate: '83%', questionCount: 92, isMe: false },
+  { key: '10', rank: 10, name: '吴娜', completionRate: '82%', questionCount: 88, isMe: false },
+  { key: '11', rank: 11, name: '郑浩', completionRate: '80%', questionCount: 85, isMe: false },
+  { key: '12', rank: 12, name: '钱敏', completionRate: '78%', questionCount: 82, isMe: false },
+  { key: '13', rank: 13, name: '孙涛', completionRate: '76%', questionCount: 78, isMe: false },
+  { key: '14', rank: 14, name: '李娜', completionRate: '75%', questionCount: 75, isMe: false },
+  { key: '15', rank: 15, name: '王强', completionRate: '73%', questionCount: 72, isMe: false },
 ])
 
 // 轮播相关
@@ -376,40 +376,31 @@ const initTrendChart = () => {
       },
     },
     legend: {
-      data: ['班级平均分', '我的分数', '班级完成率'],
+      data: ['班级平均做题数', '我的做题数', '班级错题数'],
       bottom: 0,
+      left: 'center'
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '50px',
+      bottom: '15%',
       top: '10%',
       containLabel: true,
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      data: ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周', '第7周', '第8周'],
     },
-    yAxis: [
-      {
-        type: 'value',
-        name: '分数',
-        position: 'left',
-        max: 100,
-      },
-      {
-        type: 'value',
-        name: '完成率(%)',
-        position: 'right',
-        max: 100,
-      },
-    ],
+    yAxis: {
+      type: 'value',
+      name: '题数',
+    },
     series: [
       {
-        name: '班级平均分',
+        name: '班级平均做题数',
         type: 'line',
-        data: [78, 80, 82, 81, 83, 85, 84],
+        data: [45, 52, 58, 63, 70, 75, 82, 88],
         smooth: true,
         itemStyle: {
           color: '#1890ff',
@@ -422,22 +413,21 @@ const initTrendChart = () => {
         },
       },
       {
-        name: '我的分数',
+        name: '我的做题数',
         type: 'line',
-        data: [82, 85, 84, 86, 88, 90, 87],
+        data: [50, 58, 65, 72, 80, 88, 95, 102],
         smooth: true,
         itemStyle: {
           color: '#52c41a',
         },
       },
       {
-        name: '班级完成率',
+        name: '班级错题数',
         type: 'line',
-        yAxisIndex: 1,
-        data: [75, 78, 80, 82, 85, 87, 88],
+        data: [12, 15, 18, 20, 22, 25, 28, 30],
         smooth: true,
         itemStyle: {
-          color: '#faad14',
+          color: '#ff4d4f',
         },
       },
     ],
