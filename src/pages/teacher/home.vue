@@ -84,9 +84,11 @@
                 <CheckCircleOutlined />
               </div>
               <div class="action-content">
-                <h3>查看待审核申请</h3>
+                <div class="action-title-wrapper">
+                  <h3>查看待审核申请</h3>
+                  <a-badge :count="statistics.pendingReviews" />
+                </div>
                 <p>处理学生的入班、换班申请</p>
-                <a-badge :count="statistics.pendingReviews" style="margin-left: 8px;" />
               </div>
             </div>
           </a-col>
@@ -492,105 +494,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
-.teacher-home-container {
-  padding: 0;
-}
-
-.statistics-section {
-  margin-bottom: 24px;
-}
-
-.statistics-section :deep(.ant-card) {
-  transition: all 0.3s;
-}
-
-.statistics-section :deep(.ant-card:hover) {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.pending-card {
-  position: relative;
-}
-
-.pending-card :deep(.ant-badge) {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-}
-
-.quick-actions-section {
-  margin-bottom: 24px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: #f5f5f5;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  height: 100%;
-}
-
-.action-card:hover {
-  background: #e6f7ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-}
-
-.action-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.action-content {
-  flex: 1;
-}
-
-.action-content h3 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.action-content p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.charts-section {
-  margin-bottom: 24px;
-}
-
-.charts-section :deep(.ant-card) {
-  height: 100%;
-}
-
-.charts-section :deep(.ant-card-head-title) {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-@media (max-width: 768px) {
-  .action-card {
-    margin-bottom: 12px;
-  }
-  
-  .statistics-section :deep(.ant-col) {
-    margin-bottom: 16px;
-  }
-}
-</style>
+<style scoped src="./home.css"></style>
