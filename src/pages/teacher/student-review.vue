@@ -10,11 +10,10 @@
           :row-key="record => record.id"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'className'">
+            <template v-if="column.key === 'classLevel'">
               <a-tag :color="getLevelColor(record.classLevel)">
                 {{ record.classLevel }}级
               </a-tag>
-              <span>{{ record.className }}</span>
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space>
@@ -39,17 +38,15 @@
           :row-key="record => record.id"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'fromClass'">
+            <template v-if="column.key === 'fromClassLevel'">
               <a-tag :color="getLevelColor(record.fromClassLevel)">
                 {{ record.fromClassLevel }}级
               </a-tag>
-              <span>{{ record.fromClassName }}</span>
             </template>
-            <template v-else-if="column.key === 'toClass'">
+            <template v-else-if="column.key === 'toClassLevel'">
               <a-tag :color="getLevelColor(record.toClassLevel)">
                 {{ record.toClassLevel }}级
               </a-tag>
-              <span>{{ record.toClassName }}</span>
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space>
@@ -74,11 +71,10 @@
           :row-key="record => record.id"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'className'">
+            <template v-if="column.key === 'classLevel'">
               <a-tag :color="getLevelColor(record.classLevel)">
                 {{ record.classLevel }}级
               </a-tag>
-              <span>{{ record.className }}</span>
             </template>
             <template v-else-if="column.key === 'action'">
               <a-space>
@@ -113,9 +109,15 @@ const joinColumns = [
     width: 120
   },
   {
+    title: '班级等级',
+    key: 'classLevel',
+    width: 100
+  },
+  {
     title: '申请进入班级',
+    dataIndex: 'className',
     key: 'className',
-    width: 200
+    width: 180
   },
   {
     title: '发起申请时间',
@@ -146,14 +148,26 @@ const transferColumns = [
     width: 120
   },
   {
+    title: '原班级等级',
+    key: 'fromClassLevel',
+    width: 110
+  },
+  {
     title: '原班级',
-    key: 'fromClass',
-    width: 180
+    dataIndex: 'fromClassName',
+    key: 'fromClassName',
+    width: 150
+  },
+  {
+    title: '目标等级',
+    key: 'toClassLevel',
+    width: 100
   },
   {
     title: '申请转入班级',
-    key: 'toClass',
-    width: 180
+    dataIndex: 'toClassName',
+    key: 'toClassName',
+    width: 150
   },
   {
     title: '发起申请时间',
@@ -184,9 +198,15 @@ const quitColumns = [
     width: 120
   },
   {
+    title: '班级等级',
+    key: 'classLevel',
+    width: 100
+  },
+  {
     title: '退出班级',
+    dataIndex: 'className',
     key: 'className',
-    width: 200
+    width: 180
   },
   {
     title: '发起申请时间',
@@ -348,22 +368,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.student-review-container {
-  padding: 0;
-}
-
-:deep(.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab) {
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-:deep(.ant-table) {
-  margin-top: 16px;
-}
-
-:deep(.ant-tag) {
-  margin-right: 8px;
-}
-</style>
+<style scoped src="./student-review.css"></style>

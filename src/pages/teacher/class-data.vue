@@ -99,12 +99,14 @@ const initTaskCompletionChart = () => {
       }
     },
     legend: {
-      data: ['已完成', '未完成']
+      data: ['已完成', '未完成'],
+      bottom: 0,
+      left: 'center'
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      bottom: '15%',
       containLabel: true
     },
     xAxis: {
@@ -153,12 +155,14 @@ const initStudentActivityChart = () => {
       trigger: 'axis'
     },
     legend: {
-      data: ['登录次数', '完成任务数', '练习题数']
+      data: ['完成任务数', '练习题数'],
+      bottom: 0,
+      left: 'center'
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      bottom: '15%',
       containLabel: true
     },
     xAxis: {
@@ -170,15 +174,6 @@ const initStudentActivityChart = () => {
       type: 'value'
     },
     series: [
-      {
-        name: '登录次数',
-        type: 'line',
-        data: [120, 132, 101, 134, 90, 230, 210],
-        smooth: true,
-        itemStyle: {
-          color: '#1890ff'
-        }
-      },
       {
         name: '完成任务数',
         type: 'line',
@@ -303,8 +298,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
-.class-data-container {
-  padding: 0;
-}
-</style>
+<style scoped src="./class-data.css"></style>

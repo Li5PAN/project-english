@@ -1,0 +1,17 @@
+.student-review-container {
+  padding: 0;
+}
+
+:deep(.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab) {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+:deep(.ant-table) {
+  margin-top: 16px;
+}
+
+:deep(.ant-tag) {
+  margin-right: 8px;
+}

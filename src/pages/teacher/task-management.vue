@@ -34,17 +34,26 @@
               <h3 class="task-name">{{ task.taskName }}</h3>
               
               <div class="info-item">
-                <TeamOutlined />
-                <span>发布班级：</span>
+                <ApartmentOutlined />
+                <span>班级等级：</span>
                 <a-tag :color="getLevelColor(task.classLevel)" size="small">
                   {{ task.classLevel }}级
                 </a-tag>
-                <span>{{ task.className }}</span>
+              </div>
+              
+              <div class="info-item">
+                <TeamOutlined />
+                <span>班级名称：{{ task.className }}</span>
               </div>
               
               <div class="info-item">
                 <FileTextOutlined />
                 <span>题目数量：{{ task.questionCount }}题</span>
+              </div>
+              
+              <div class="info-item">
+                <ClockCircleOutlined />
+                <span>开始时间：{{ task.startTime }}</span>
               </div>
               
               <div class="info-item">
@@ -86,13 +95,14 @@
       <div v-if="selectedTask" class="task-detail">
         <a-descriptions :column="2" bordered>
           <a-descriptions-item label="任务名称">{{ selectedTask.taskName }}</a-descriptions-item>
-          <a-descriptions-item label="发布班级">
+          <a-descriptions-item label="班级等级">
             <a-tag :color="getLevelColor(selectedTask.classLevel)">
               {{ selectedTask.classLevel }}级
             </a-tag>
-            {{ selectedTask.className }}
           </a-descriptions-item>
+          <a-descriptions-item label="班级名称">{{ selectedTask.className }}</a-descriptions-item>
           <a-descriptions-item label="题目数量">{{ selectedTask.questionCount }}题</a-descriptions-item>
+          <a-descriptions-item label="开始时间">{{ selectedTask.startTime }}</a-descriptions-item>
           <a-descriptions-item label="截止时间">{{ selectedTask.deadline }}</a-descriptions-item>
           <a-descriptions-item label="完成情况">
             {{ selectedTask.completedCount }}/{{ selectedTask.totalStudents }}
@@ -147,12 +157,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
 import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
 import ClockCircleOutlined from '@ant-design/icons-vue/ClockCircleOutlined'
 import CheckCircleOutlined from '@ant-design/icons-vue/CheckCircleOutlined'
+import ApartmentOutlined from '@ant-design/icons-vue/ApartmentOutlined'
 
 // 筛选条件
 const filterLevel = ref('')
@@ -230,6 +241,7 @@ const loadData = () => {
       className: '高级英语班',
       classLevel: 'A',
       questionCount: 20,
+      startTime: '2024-02-10 08:00',
       deadline: '2024-02-15 23:59',
       completedCount: 25,
       totalStudents: 40,
@@ -260,6 +272,7 @@ const loadData = () => {
       className: '中级英语班',
       classLevel: 'B',
       questionCount: 15,
+      startTime: '2024-02-11 08:00',
       deadline: '2024-02-16 23:59',
       completedCount: 40,
       totalStudents: 45,
@@ -280,6 +293,7 @@ const loadData = () => {
       className: '初级英语班',
       classLevel: 'C',
       questionCount: 10,
+      startTime: '2024-02-09 08:00',
       deadline: '2024-02-14 23:59',
       completedCount: 48,
       totalStudents: 50,
@@ -292,6 +306,7 @@ const loadData = () => {
       className: '基础英语班',
       classLevel: 'D',
       questionCount: 12,
+      startTime: '2024-02-12 08:00',
       deadline: '2024-02-17 23:59',
       completedCount: 10,
       totalStudents: 35,
@@ -306,164 +321,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.task-management-container {
-  padding: 0;
-}
-
-.filter-section {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  margin-bottom: 24px;
-}
-
-.filter-label {
-  font-weight: 500;
-  color: #333;
-}
-
-.level-filter-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.level-btn {
-  padding: 6px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  color: #fff;
-  opacity: 0.6;
-}
-
-.level-btn:hover {
-  opacity: 0.8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.level-btn.active {
-  opacity: 1;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.level-btn.all {
-  background: #595959;
-}
-
-.level-btn.A {
-  background: #ff4d4f;
-}
-
-.level-btn.B {
-  background: #ff7a45;
-}
-
-.level-btn.C {
-  background: #1890ff;
-}
-
-.level-btn.D {
-  background: #52c41a;
-}
-
-.tasks-grid {
-  min-height: 400px;
-}
-
-.task-card {
-  height: 100%;
-  transition: all 0.3s;
-}
-
-.task-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.task-info {
-  padding-bottom: 16px;
-}
-
-.task-name {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 16px;
-  color: #1890ff;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: #666;
-  font-size: 14px;
-}
-
-.info-item :deep(.anticon) {
-  color: #1890ff;
-}
-
-.task-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.task-actions button {
-  flex: 1;
-}
-
-.task-detail {
-  padding: 16px 0;
-}
-
-.questions-detail {
-  margin-top: 16px;
-}
-
-.question-detail-item {
-  background: #f5f5f5;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.question-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.question-title {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
-}
-
-.question-content {
-  padding-left: 8px;
-}
-
-.question-content p {
-  margin-bottom: 8px;
-}
-
-.option-item {
-  padding: 8px 0;
-  padding-left: 16px;
-}
-
-.correct-answer {
-  color: #52c41a;
-  font-weight: 500;
-}
-</style>
+<style scoped src="./task-management.css"></style>
