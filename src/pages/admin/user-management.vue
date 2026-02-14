@@ -314,20 +314,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.user-management-container {
-  padding: 0;
-}
-
-.user-detail {
-  padding: 16px 0;
-}
-
-:deep(.ant-table) {
-  margin-top: 16px;
-}
-
-:deep(.ant-tag) {
-  margin-right: 8px;
-}
-</style>
+<style scoped src="./user-management.css"></style>
