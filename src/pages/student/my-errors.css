@@ -1,0 +1,100 @@
+.my-errors-container {
+  padding: 20px;
+}
+
+.card-title-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.title-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.title-buttons {
+  margin-left: 10px;
+}
+
+.filter-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.batch-actions {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 4px;
+}
+
+.question-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-detail {
+  padding: 10px 0;
+}
+
+.question-content {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.options-section {
+  margin: 16px 0;
+}
+
+.option-item {
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  background: white;
+  border: 1px solid #d9d9d9;
+}
+
+.option-item.correct-option {
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.option-item.wrong-option {
+  background: #fff2e8;
+  border-color: #ffbb96;
+}
+
+.answer-section {
+  margin: 16px 0;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.correct-text {
+  color: #52c41a;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.wrong-text {
+  color: #ff4d4f;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.explanation-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #e6f7ff;
+  border-radius: 8px;
+  border-left: 3px solid #1890ff;
+}

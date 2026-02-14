@@ -151,18 +151,4 @@ const logout = () => {
 }
 </script>
 
-<style scoped>
-.logo {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1890ff;
-}
-
-.logo h3 {
-  color: #fff;
-  margin: 0;
-  font-size: 18px;
-}
-</style>
+<style scoped src="./index.css"></style>
