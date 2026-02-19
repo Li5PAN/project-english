@@ -49,6 +49,8 @@
                   <a-select-option value="D">D级</a-select-option>
                 </a-select>
               </a-space>
+              <a-button>搜索</a-button>
+              <a-button>重置</a-button>
             </a-space>
           </a-col>
           <a-col :span="6">
@@ -84,13 +86,6 @@
               </a-menu>
             </template>
           </a-dropdown>
-          <a-button 
-            danger 
-            :disabled="selectedRowKeys.length === 0"
-            @click="handleBatchDelete"
-          >
-            批量删除
-          </a-button>
         </a-space>
       </div>
     </div>
@@ -135,9 +130,7 @@
               <a-button type="link" size="small" @click="viewErrorDetail(record)">
                 查看详情
               </a-button>
-              <a-button type="link" danger size="small" @click="deleteError(record)">
-                删除
-              </a-button>
+              
             </a-space>
           </template>
         </template>
@@ -235,12 +228,12 @@
           <a-descriptions-item label="错误次数">
             <span style="color: #cf1322; font-weight: bold;">{{ selectedError.errorCount }} 次</span>
           </a-descriptions-item>
-          <a-descriptions-item label="班级等级">
+          <a-descriptions-item label="任务名称">
             <a-tag :color="getLevelColor(selectedError.classLevel)">
               {{ selectedError.classLevel }}级
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="最近错误时间">
+          <a-descriptions-item label="创建时间">
             {{ selectedError.lastErrorTime }}
           </a-descriptions-item>
         </a-descriptions>
@@ -298,13 +291,13 @@ const columns = [
     sorter: (a, b) => a.errorCount - b.errorCount
   },
   {
-    title: '班级等级',
+    title: '任务名称',
     dataIndex: 'classLevel',
     key: 'classLevel',
     width: 100
   },
   {
-    title: '最近错误时间',
+    title: '创建时间',
     dataIndex: 'lastErrorTime',
     key: 'lastErrorTime',
     width: 180

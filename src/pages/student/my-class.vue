@@ -115,12 +115,11 @@
           </a-space>
         </template>
 
-        <a-descriptions bordered :column="2">
-          <a-descriptions-item label="班级名称">
-            <a-tag :color="getLevelColor(currentClass.level)">{{ currentClass.level }}级</a-tag>
-            {{ currentClass.name }}
-          </a-descriptions-item>
+        <a-descriptions bordered :column="3">
+          <a-descriptions-item label="班级名称"> {{ currentClass.name }}</a-descriptions-item>
+          <a-descriptions-item label="班级等级"> <a-tag :color="getLevelColor(currentClass.level)">{{ currentClass.level }}级</a-tag></a-descriptions-item>
           <a-descriptions-item label="授课老师">{{ currentClass.teacher }}</a-descriptions-item>
+          <a-descriptions-item label="班级任务总数">{{ currentClass.taskCount }}</a-descriptions-item>
           <a-descriptions-item label="班级总人数">{{ currentClass.studentCount }}人</a-descriptions-item>
           <a-descriptions-item label="个人班级排名">第{{ currentClass.myRank }}名</a-descriptions-item>
           <a-descriptions-item label="班级任务平均完成率">{{ currentClass.avgCompletionRate }}%</a-descriptions-item>
@@ -276,6 +275,7 @@ const currentClass = ref({
   teacher: '张老师',
   studentCount: 45,
   myRank: 8,
+  taskCount:80, //班级任务总数
   avgCompletionRate: 82,
   myCompletionRate: 100, // 改为 100 可测试换班按钮启用
   totalTasks: 80,

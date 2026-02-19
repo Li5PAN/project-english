@@ -171,6 +171,9 @@
             <li>审核通过后将自动离开当前班级</li>
             <li>换班后任务进度将重新计算</li>
           </ul>
+          <div>
+            申请理由:<input/>
+          </div>
         </template>
       </a-alert>
     </a-modal>

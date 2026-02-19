@@ -18,7 +18,7 @@
       <a-col :xs="24" :sm="8">
         <a-card>
           <a-statistic
-            title="一周学习总时长"
+            title="任务完成数"
             :value="statistics.weekTotalTime"
             suffix="小时"
             :precision="1"
@@ -32,7 +32,7 @@
       <a-col :xs="24" :sm="8">
         <a-card>
           <a-statistic
-            title="一周日均学习时长"
+            title="总错题数"
             :value="statistics.weekAvgTime"
             suffix="小时"
             :precision="1"

@@ -17,7 +17,7 @@
       <a-layout-header style="background: #fff; padding: 0 24px; display: flex; justify-content: space-between; align-items: center;">
         <h2 style="margin: 0;">{{ pageTitle }}</h2>
         <div style="display: flex; align-items: center; gap: 16px;">
-          <span>欢迎，{{ userInfo.name || userInfo.username }}</span>
+          <span style="cursor: pointer; color: #1890ff;" @click="showProfileModal">欢迎，{{ userInfo.name || userInfo.username }}</span>
           <a-button type="primary" danger @click="logout">退出登录</a-button>
         </div>
       </a-layout-header>
@@ -26,6 +26,31 @@
         <router-view />
       </a-layout-content>
     </a-layout>
+
+    <!-- 个人信息弹窗 -->
+    <a-modal
+      v-model:open="profileModalVisible"
+      title="个人信息"
+      :footer="null"
+      width="500px"
+    >
+      <div style="padding: 10px 0;">
+        <div style="margin-bottom: 16px; display: flex; align-items: center;">
+          <span style="font-weight: 500; width: 120px;">姓名：</span>
+          <span>{{ userInfo.name || userInfo.username }}</span>
+        </div>
+        
+        <div style="margin-bottom: 16px; display: flex; align-items: center;">
+          <span style="font-weight: 500; width: 120px;">班级：</span>
+          <span>{{ userInfo.classes && userInfo.classes.length > 0 ? userInfo.classes.join('、') : '未创建班级' }}</span>
+        </div>
+        
+        <div style="margin-bottom: 16px; display: flex; align-items: center;">
+          <span style="font-weight: 500; width: 120px;">班级等级：</span>
+          <span>{{ userInfo.classLevels && userInfo.classLevels.length > 0 ? userInfo.classLevels.join('、') : '-' }}</span>
+        </div>
+      </div>
+    </a-modal>
   </a-layout>
 </template>
 
@@ -116,6 +141,12 @@ const handleMenuClick = ({ key }) => {
   if (routes[key]) {
     router.push(routes[key])
   }
+}
+
+// 个人信息弹窗
+const profileModalVisible = ref(false)
+const showProfileModal = () => {
+  profileModalVisible.value = true
 }
 
 const logout = () => {

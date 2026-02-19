@@ -100,6 +100,10 @@
                   <TeamOutlined />
                   <span>限定人数：{{ classItem.maxStudents }}人</span>
                 </div>
+                <div class="info-item">
+                  <TeamOutlined />
+                  <span>当前人数：{{ classItem.maxStudents }}人</span>
+                </div>
                 
                 <div class="info-item">
                   <CarryOutOutlined />
@@ -156,7 +160,7 @@
           <a-input v-model:value="createForm.name" placeholder="请输入班级名称" />
         </a-form-item>
 
-        <a-form-item label="任务完成数量" name="taskCount">
+        <a-form-item label="任务数量" name="taskCount">
           <a-input-number
             v-model:value="createForm.taskCount"
             :min="60"
@@ -201,6 +205,14 @@
 
         <a-form-item label="所属班级">
           <a-input :value="selectedClass?.name" disabled />
+        </a-form-item>
+
+        <a-form-item label="任务类型" name="taskType">
+          <a-select v-model:value="publishTaskForm.taskType" placeholder="请选择任务类型">
+            <a-select-option value="daily">日常练习</a-select-option>
+            <a-select-option value="midterm">半期练习</a-select-option>
+            <a-select-option value="review">复习练习</a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item label="开始时间" name="startTime">
@@ -450,6 +462,7 @@ const selectedClass = ref(null)
 
 const publishTaskForm = reactive({
   taskName: '',
+  taskType: undefined,
   startTime: null,
   deadline: null,
   questions: []
@@ -457,6 +470,7 @@ const publishTaskForm = reactive({
 
 const publishTaskRules = {
   taskName: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
+  taskType: [{ required: true, message: '请选择任务类型', trigger: 'change' }],
   startTime: [{ required: true, message: '请选择任务开始时间', trigger: 'change' }],
   deadline: [
     { required: true, message: '请选择任务截止时间', trigger: 'change' },
@@ -590,6 +604,7 @@ const handlePublishTask = async () => {
 
       // 重置表单
       publishTaskForm.taskName = ''
+      publishTaskForm.taskType = undefined
       publishTaskForm.startTime = null
       publishTaskForm.deadline = null
       publishTaskForm.questions = []
@@ -602,6 +617,7 @@ const handlePublishTask = async () => {
 // 取消发布任务
 const handleCancelPublishTask = () => {
   publishTaskForm.taskName = ''
+  publishTaskForm.taskType = undefined
   publishTaskForm.startTime = null
   publishTaskForm.deadline = null
   publishTaskForm.questions = []

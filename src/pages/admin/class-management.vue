@@ -153,13 +153,13 @@ const reviewColumns = [
     width: 180
   },
   {
-    title: '学生人数',
+    title: '当前学生人数',
     dataIndex: 'studentCount',
     key: 'studentCount',
     width: 100
   },
   {
-    title: '班级任务数',
+    title: '进行中任务数',
     dataIndex: 'taskCount',
     key: 'taskCount',
     width: 120

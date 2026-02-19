@@ -149,7 +149,7 @@
               {{ currentError.questionType }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="所属班级">{{ currentError.className }}</a-descriptions-item>
+          <a-descriptions-item label="所属任务">{{ currentError.className }}</a-descriptions-item>
           <a-descriptions-item label="错误日期" :span="2">{{ currentError.errorDate }}</a-descriptions-item>
         </a-descriptions>
 

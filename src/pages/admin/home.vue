@@ -70,10 +70,7 @@
               <div class="pending-icon" style="background: #e6f7ff;">
                 <UserAddOutlined style="color: #1890ff; font-size: 32px;" />
               </div>
-              <div class="pending-info">
-                <div class="pending-title">新注册用户</div>
-                <div class="pending-count" style="color: #1890ff;">{{ pendingTasks.newUsers }}</div>
-              </div>
+             
             </div>
           </a-card>
         </a-col>
