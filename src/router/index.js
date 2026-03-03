@@ -69,17 +69,37 @@ const router = createRouter({
 // 路由前置守卫（核心：权限校验 + 身份匹配）
 router.beforeEach((to, from, next) => {
   // 1. 获取用户信息
+  const token = localStorage.getItem('token')
   const userInfoStr = localStorage.getItem('userInfo')
   const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null
-  const hasToken = !!userInfo
-  const userRole = userInfo?.role
+
+  // 兼容多种角色字段名
+  // 后端 roles 是对象数组：[{ roleKey: 'student', ... }]
+  const rolesArr = userInfo?.roles
+  const rawRole = userInfo?.role
+    || userInfo?.userType
+    || userInfo?.type
+    || rolesArr?.[0]?.roleKey
+    || rolesArr?.[0]?.roleName
+    || (typeof rolesArr?.[0] === 'string' ? rolesArr[0] : undefined)
+
+  // 统一角色值为小写字符串
+  const roleMap = {
+    '0': 'student', 'student': 'student', 'STUDENT': 'student',
+    '1': 'teacher', 'teacher': 'teacher', 'TEACHER': 'teacher',
+    '2': 'admin',   'admin': 'admin',     'ADMIN': 'admin',
+  }
+  const userRole = roleMap[rawRole] || rawRole
+
+  const hasToken = !!token || !!userInfo
 
   console.log('路由守卫检查:', {
     to: to.path,
     from: from.path,
-    hasToken: hasToken,
-    userRole: userRole,
-    userInfo: userInfo
+    hasToken,
+    rawRole,
+    userRole,
+    userInfo
   })
 
   // 2. 定义无需鉴权的路由白名单
@@ -94,22 +114,29 @@ router.beforeEach((to, from, next) => {
 
   // 4. 白名单路由直接放行（登录、注册页）
   if (whiteList.includes(to.path)) {
-    // 如果已登录的用户访问登录页，自动跳转到对应身份的首页
+    // 已登录且有有效角色 → 跳到对应首页
     if (hasToken && userRole) {
-      const targetRoute = roleRouteMap[userRole]
-      console.log('已登录用户访问登录页，跳转到:', targetRoute)
-      next(targetRoute || '/login')
+      next(roleRouteMap[userRole])
     } else {
-      next() // 未登录，放行到登录/注册页
+      // 未登录，或 token 存在但角色无效 → 清掉脏数据，放行到登录页
+      if (!userRole && (token || userInfo)) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+      }
+      next()
     }
     return
   }
 
   // 5. 非白名单路由需要鉴权
-  if (!hasToken || !userRole) {
-    console.log('未登录或用户信息不完整，跳转到登录页')
-    // 无token或用户信息不完整，跳回登录页
+  if (!hasToken) {
     next('/login')
+    return
+  }
+
+  // 有 token 但角色未就绪 → 放行（login.vue 里 getInfo 还没返回）
+  if (!userRole) {
+    next()
     return
   }
 
