@@ -105,28 +105,53 @@
   background: #1890ff;
 }
 
-.calendar-cell {
-  position: relative;
+/* 日历日期单元格填色 */
+.calendar-date-cell {
+  width: 100%;
   height: 100%;
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+  cursor: pointer;
 }
 
-.check-mark {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
-  background: #52c41a;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
+.calendar-date-cell .date-number {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 已打卡 - 淡绿色 */
+.calendar-date-cell.checked-in {
+  background: #d9f7be;
+  color: #389e0d;
+  font-weight: 600;
+}
+
+/* 未打卡（当月已过日期）- 淡红色 */
+.calendar-date-cell.not-checked-in {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+/* 覆盖 ant-design 默认的 cell 内边距 */
+.calendar-card :deep(.ant-picker-cell) {
+  padding: 2px 0;
+}
+
+.calendar-card :deep(.ant-picker-cell .ant-picker-cell-inner) {
+  padding: 0;
+  background: transparent !important;
+}
+
+.calendar-card :deep(.ant-picker-cell-in-view.ant-picker-cell-selected .calendar-date-cell) {
+  outline: 2px solid #1890ff;
+}
+
+.calendar-card :deep(.ant-picker-cell-in-view.ant-picker-cell-today .calendar-date-cell) {
+  outline: 2px solid #1890ff;
 }
 
 .check-in-footer {

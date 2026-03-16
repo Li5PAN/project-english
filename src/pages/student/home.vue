@@ -55,17 +55,20 @@
       <a-col :span="10">
         <a-card title="学习打卡" :bordered="false" class="calendar-card">
           <a-calendar 
+            v-model:value="calendarValue"
             :fullscreen="false" 
             @select="onDateSelect"
+            @panelChange="onPanelChange"
           >
-            <template #dateCellRender="{ current }">
-              <div class="calendar-cell">
-                <div 
-                  v-if="isCheckedInDate(current)" 
-                  class="check-mark"
-                >
-                  ✓
-                </div>
+            <template #dateFullCellRender="{ current }">
+              <div 
+                class="calendar-date-cell"
+                :class="{
+                  'checked-in': isCheckedInDate(current),
+                  'not-checked-in': isCurrentMonth(current) && !isCheckedInDate(current) && isPastOrToday(current)
+                }"
+              >
+                <span class="date-number">{{ dayjs(current).date() }}</span>
               </div>
             </template>
           </a-calendar>
@@ -227,19 +230,25 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons-vue'
+import studentHomeService from '@/services/studentHomeService'
 
 // 打卡相关数据
 const isCheckedIn = ref(false)
 const checkInStats = ref({
-  continuousDays: 7,
-  totalDays: 45,
+  continuousDays: 0,
+  totalDays: parseInt(localStorage.getItem('clockInTotalDays') || '0'),
 })
 
-// 打卡日期记录（模拟数据）
-const checkedInDates = ref([
-  '2026-02-06', '2026-02-07', '2026-02-08', '2026-02-09', 
-  '2026-02-10', '2026-02-11', '2026-02-12'
-])
+// 打卡日期记录（从 localStorage 加载历史记录）
+const checkedInDates = ref(JSON.parse(localStorage.getItem('clockInDates') || '[]'))
+
+// 保存打卡日期到 localStorage
+const saveCheckedInDates = () => {
+  localStorage.setItem('clockInDates', JSON.stringify(checkedInDates.value))
+}
+
+// 当前日历显示的月份
+const calendarValue = ref(dayjs())
 
 // 判断某个日期是否已打卡
 const isCheckedInDate = (date) => {
@@ -247,21 +256,52 @@ const isCheckedInDate = (date) => {
   return checkedInDates.value.includes(dateStr)
 }
 
+// 判断是否为日历当前显示的月份
+const isCurrentMonth = (date) => {
+  return dayjs(date).month() === calendarValue.value.month() && dayjs(date).year() === calendarValue.value.year()
+}
+
+// 判断是否为过去或今天的日期
+const isPastOrToday = (date) => {
+  return dayjs(date).startOf('day').isBefore(dayjs().endOf('day'))
+}
+
+// 日历面板变化（切换月份/年份）
+const onPanelChange = (value) => {
+  calendarValue.value = value
+}
+
 // 日期选择
 const onDateSelect = (date) => {
-  console.log('选择日期:', dayjs(date).format('YYYY-MM-DD'))
+  calendarValue.value = date
 }
 
 // 打卡功能
-const handleCheckIn = () => {
-  const today = dayjs().format('YYYY-MM-DD')
-  if (!checkedInDates.value.includes(today)) {
-    checkedInDates.value.push(today)
+const handleCheckIn = async () => {
+  try {
+    const res = await studentHomeService.clockIn()
+    if (res && res.data) {
+      isCheckedIn.value = res.data.clockedIn
+      checkInStats.value.continuousDays = res.data.consecutiveDays ?? 0
+      // 打卡成功后将今天加入已打卡日期列表
+      const today = dayjs(res.data.clockInDate || undefined).format('YYYY-MM-DD')
+      if (!checkedInDates.value.includes(today)) {
+        checkedInDates.value.push(today)
+        saveCheckedInDates()
+      }
+      // 累计打卡天数自增并存入 localStorage（防止重复计数）
+      const todayStr = dayjs().format('YYYY-MM-DD')
+      const lastCountedDate = localStorage.getItem('clockInLastCountedDate')
+      if (lastCountedDate !== todayStr) {
+        checkInStats.value.totalDays++
+        localStorage.setItem('clockInTotalDays', String(checkInStats.value.totalDays))
+        localStorage.setItem('clockInLastCountedDate', todayStr)
+      }
+      message.success('打卡成功！连续打卡' + res.data.consecutiveDays + '天')
+    }
+  } catch (error) {
+    message.error('打卡失败，请重试')
   }
-  isCheckedIn.value = true
-  checkInStats.value.continuousDays++
-  checkInStats.value.totalDays++
-  message.success('打卡成功！连续打卡' + checkInStats.value.continuousDays + '天')
 }
 
 // 未完成任务列表
@@ -335,7 +375,20 @@ const getTaskUrgencyColor = (deadline) => {
 
 // 每日任务完成图表
 const taskChartRef = ref(null)
-const initTaskChart = () => {
+const initTaskChart = async () => {
+  // 从接口获取近7天数据
+  let dates = []
+  let counts = []
+  try {
+    const res = await studentHomeService.getWeeklyQuestions()
+    if (res && res.data && res.data.length) {
+      dates = res.data.map(item => item.date.slice(5)) // MM-DD
+      counts = res.data.map(item => item.completedCount)
+    }
+  } catch (error) {
+    console.error('获取近7天任务完成情况失败:', error)
+  }
+
   const chart = echarts.init(taskChartRef.value)
   const option = {
     tooltip: {
@@ -352,7 +405,7 @@ const initTaskChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      data: dates,
       axisLabel: {
         interval: 0,
       },
@@ -365,7 +418,7 @@ const initTaskChart = () => {
       {
         name: '完成题数',
         type: 'bar',
-        data: [45, 52, 38, 65, 48, 72, 58],
+        data: counts,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#83bff6' },
@@ -396,51 +449,45 @@ const initTaskChart = () => {
 
 // 单词学习趋势图表
 const wordTrendChartRef = ref(null)
-const initWordTrendChart = () => {
+const initWordTrendChart = async () => {
+  let dates = []
+  let counts = []
+  try {
+    const res = await studentHomeService.getWeeklyWordsStudied()
+    if (res && res.data && res.data.length) {
+      dates = res.data.map(item => item.date.slice(5))
+      counts = res.data.map(item => item.masteredCount)
+    }
+  } catch (error) {
+    console.error('获取单词学习趋势失败:', error)
+  }
+
   const chart = echarts.init(wordTrendChartRef.value)
   const option = {
     tooltip: {
       trigger: 'axis',
-      axisPointer: {
-        type: 'cross',
-      },
-    },
-    legend: {
-      data: ['学习单词数', '正确率'],
-      bottom: 0,  // 放置在底部
-      left: 'center',  // 水平居中
-      itemGap: 20,  // 图例项之间的间距
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '40px',  // 增加底部空间，为图例留出位置（横坐标 + 5px间距 + 图例高度）
+      bottom: '3%',
       top: '10%',
       containLabel: true,
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      data: dates,
     },
-    yAxis: [
-      {
-        type: 'value',
-        name: '单词数',
-        position: 'left',
-      },
-      {
-        type: 'value',
-        name: '正确率(%)',
-        position: 'right',
-        max: 100,
-      },
-    ],
+    yAxis: {
+      type: 'value',
+      name: '学习单词数',
+    },
     series: [
       {
         name: '学习单词数',
         type: 'line',
-        data: [25, 32, 28, 35, 30, 42, 38],
+        data: counts,
         smooth: true,
         itemStyle: {
           color: '#1890ff',
@@ -451,15 +498,10 @@ const initWordTrendChart = () => {
             { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
           ]),
         },
-      },
-      {
-        name: '正确率',
-        type: 'line',
-        yAxisIndex: 1,
-        data: [82, 85, 88, 84, 86, 90, 87],
-        smooth: true,
-        itemStyle: {
-          color: '#52c41a',
+        label: {
+          show: true,
+          position: 'top',
+          formatter: '{c}',
         },
       },
     ],
@@ -469,16 +511,63 @@ const initWordTrendChart = () => {
 }
 
 // 快捷功能数据
-const todayWords = ref(25)
-const errorCount = ref(15)
-const myRank = ref(8)
-const pendingTasksCount = ref(4)
+const todayWords = ref(0)
+const errorCount = ref(0)
+const myRank = ref(0)
+const pendingTasksCount = ref(0)
+const todayStudyMinutes = ref(0)
+const todayTasksCompleted = ref(0)
+
+// 获取学习概览数据
+const fetchOverview = async () => {
+  try {
+    const res = await studentHomeService.getStudentOverview()
+    if (res && res.data) {
+      todayWords.value = res.data.todayWordsLearned ?? 0
+      errorCount.value = res.data.totalWrongQuestions ?? 0
+      myRank.value = res.data.classRank ?? 0
+      pendingTasksCount.value = res.data.pendingTasks ?? 0
+      todayStudyMinutes.value = res.data.todayStudyMinutes ?? 0
+      todayTasksCompleted.value = res.data.todayTasksCompleted ?? 0
+    }
+  } catch (error) {
+    console.error('获取学习概览失败:', error)
+  }
+}
+
+// 初始化打卡状态
+const fetchClockInStatus = async () => {
+  try {
+    const res = await studentHomeService.getClockInStatus()
+    if (res && res.data) {
+      isCheckedIn.value = res.data.clockedIn ?? false
+      checkInStats.value.continuousDays = res.data.consecutiveDays ?? 0
+      // 如果今天已打卡，将今天加入已打卡列表并持久化
+      if (res.data.clockedIn) {
+        const today = dayjs().format('YYYY-MM-DD')
+        if (!checkedInDates.value.includes(today)) {
+          checkedInDates.value.push(today)
+          saveCheckedInDates()
+        }
+        // 检查今天是否已经计入累计天数
+        const lastCountedDate = localStorage.getItem('clockInLastCountedDate')
+        if (lastCountedDate !== today) {
+          checkInStats.value.totalDays++
+          localStorage.setItem('clockInTotalDays', String(checkInStats.value.totalDays))
+          localStorage.setItem('clockInLastCountedDate', today)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取打卡状态失败:', error)
+  }
+}
 
 onMounted(() => {
+  fetchOverview()
+  fetchClockInStatus()
   initTaskChart()
   initWordTrendChart()
-  // TODO: 从后端获取打卡状态
-  // checkTodayCheckIn()
 })
 </script>
 
