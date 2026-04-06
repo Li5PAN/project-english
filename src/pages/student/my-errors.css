@@ -98,3 +98,20 @@
   border-radius: 8px;
   border-left: 3px solid #1890ff;
 }
+
+.import-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.download-template-btn {
+  color: #1890ff;
+  padding-left: 0;
+  font-size: 14px;
+}
+
+.download-template-btn:hover {
+  color: #40a9ff;
+}
+

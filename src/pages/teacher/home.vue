@@ -146,6 +146,7 @@
 import { ref, reactive, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { message } from 'ant-design-vue'
 import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
 import HomeOutlined from '@ant-design/icons-vue/HomeOutlined'
 import BellOutlined from '@ant-design/icons-vue/BellOutlined'
@@ -153,16 +154,47 @@ import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
 import PlusCircleOutlined from '@ant-design/icons-vue/PlusCircleOutlined'
 import CheckCircleOutlined from '@ant-design/icons-vue/CheckCircleOutlined'
 import WarningOutlined from '@ant-design/icons-vue/WarningOutlined'
+import { getTeacherDashboard, getLevelDistribution } from '@/services/teacher/tindex'
 
 const router = useRouter()
 
 // 核心统计数据
 const statistics = reactive({
-  totalStudents: 156,
-  totalClasses: 8,
-  pendingReviews: 12,
-  pendingTasks: 5
+  totalStudents: 0,
+  totalClasses: 0,
+  pendingReviews: 0,
+  pendingTasks: 0
 })
+
+// 获取教师首页数据
+const fetchDashboardData = async () => {
+  try {
+    const res = await getTeacherDashboard()
+    if (res && res.code === 200) {
+      statistics.totalStudents = res.data.totalStudents || 0
+      statistics.totalClasses = res.data.totalClasses || 0
+      statistics.pendingReviews = res.data.pendingApplications || 0
+      statistics.pendingTasks = res.data.pendingTasks || 0
+    }
+  } catch (error) {
+    console.error('获取教师首页数据失败:', error)
+    message.error('获取首页数据失败')
+  }
+}
+
+// 获取班级等级分布数据
+const fetchLevelDistribution = async () => {
+  try {
+    const res = await getLevelDistribution()
+    if (res && res.code === 200 && Array.isArray(res.data)) {
+      return res.data
+    }
+    return []
+  } catch (error) {
+    console.error('获取班级等级分布数据失败:', error)
+    return []
+  }
+}
 
 // 图表实例引用
 const taskCompletionChart = ref(null)
@@ -376,19 +408,32 @@ const initErrorTypeChart = () => {
 }
 
 // 初始化班级等级分布图
-// 数据来源: 教师的班级列表,按等级统计班级数量
-const initClassLevelChart = () => {
+// 数据来源: /teacher/dashboard/level-distribution 接口
+const initClassLevelChart = (levelData = []) => {
   if (levelChart) {
     levelChart.dispose()
   }
-  
+
   levelChart = echarts.init(classLevelChart.value)
-  
-  // TODO: 从后端获取教师的班级列表并按等级分组统计
-  // 示例数据结构:
-  // const classData = await fetchTeacherClasses()
-  // const levelStats = groupByLevel(classData)
-  
+
+  // 等级对应的颜色
+  const levelColors = {
+    'A': '#ff4d4f',
+    'B': '#ff7a45',
+    'C': '#1890ff',
+    'D': '#52c41a'
+  }
+
+  // 将接口数据转换为图表需要的格式
+  const chartData = levelData.map(item => ({
+    value: item.classCount,
+    name: `${item.classLevel}级`,
+    itemStyle: { color: levelColors[item.classLevel] || '#999' }
+  }))
+
+  // 获取所有等级名称用于图例
+  const legendData = levelData.map(item => `${item.classLevel}级`)
+
   const option = {
     tooltip: {
       trigger: 'item',
@@ -397,7 +442,7 @@ const initClassLevelChart = () => {
     legend: {
       orient: 'vertical',
       left: 'left',
-      data: ['A级', 'B级', 'C级', 'D级']
+      data: legendData.length > 0 ? legendData : ['A级', 'B级', 'C级', 'D级']
     },
     series: [
       {
@@ -422,32 +467,16 @@ const initClassLevelChart = () => {
             fontWeight: 'bold'
           }
         },
-        data: [
-          { 
-            value: 2, 
-            name: 'A级',
-            itemStyle: { color: '#ff4d4f' }
-          },
-          { 
-            value: 2, 
-            name: 'B级',
-            itemStyle: { color: '#ff7a45' }
-          },
-          { 
-            value: 2, 
-            name: 'C级',
-            itemStyle: { color: '#1890ff' }
-          },
-          { 
-            value: 2, 
-            name: 'D级',
-            itemStyle: { color: '#52c41a' }
-          }
+        data: chartData.length > 0 ? chartData : [
+          { value: 0, name: 'A级', itemStyle: { color: '#ff4d4f' } },
+          { value: 0, name: 'B级', itemStyle: { color: '#ff7a45' } },
+          { value: 0, name: 'C级', itemStyle: { color: '#1890ff' } },
+          { value: 0, name: 'D级', itemStyle: { color: '#52c41a' } }
         ]
       }
     ]
   }
-  
+
   levelChart.setOption(option)
 }
 
@@ -473,12 +502,19 @@ const handleResize = () => {
 }
 
 onMounted(() => {
-  nextTick(() => {
+  nextTick(async () => {
+    // 先获取首页数据
+    await fetchDashboardData()
+
+    // 获取班级等级分布数据
+    const levelData = await fetchLevelDistribution()
+
+    // 初始化图表
     initTaskCompletionChart()
     initActivityTrendChart()
     initErrorTypeChart()
-    initClassLevelChart()
-    
+    initClassLevelChart(levelData)
+
     // 监听窗口大小变化
     window.addEventListener('resize', handleResize)
   })

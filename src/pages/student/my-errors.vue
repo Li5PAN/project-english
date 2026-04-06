@@ -38,9 +38,9 @@
             allowClear
           >
             <a-select-option value="">全部类型</a-select-option>
-            <a-select-option value="选择题">选择题</a-select-option>
-            <a-select-option value="单词拼写">单词拼写</a-select-option>
-            <a-select-option value="填空题">填空题</a-select-option>
+            <a-select-option value="1">选择题</a-select-option>
+            <a-select-option value="2">单词拼写</a-select-option>
+            <a-select-option value="3">填空题</a-select-option>
           </a-select>
 
           <a-range-picker
@@ -53,18 +53,11 @@
           <a-button type="primary" @click="applyFilter">
             <SearchOutlined /> 筛选
           </a-button>
+          <a-button danger @click="batchDelete" :disabled="selectedRowKeys.length === 0">
+            <DeleteOutlined /> 批量删除{{ selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : '' }}
+          </a-button>
           <a-button @click="resetFilter">
             <ReloadOutlined /> 重置
-          </a-button>
-        </a-space>
-      </div>
-
-      <!-- 批量操作 -->
-      <div class="batch-actions" v-if="selectedRowKeys.length > 0">
-        <a-space>
-          <span>已选择 {{ selectedRowKeys.length }} 项</span>
-          <a-button danger size="small" @click="batchDelete">
-            批量删除
           </a-button>
         </a-space>
       </div>
@@ -72,29 +65,33 @@
       <!-- 错题列表 -->
       <a-table
         :columns="columns"
-        :data-source="filteredErrors"
+        :data-source="errorList"
+        :loading="loading"
         :row-selection="rowSelection"
+        :row-key="record => record.wrongId"
         :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }"
         :scroll="{ x: 1200 }"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'question'">
+          <template v-if="column.key === 'questionContent'">
             <div class="question-cell">
-              {{ record.question }}
+              {{ record.questionContent }}
             </div>
           </template>
           <template v-if="column.key === 'questionType'">
             <a-tag :color="getQuestionTypeColor(record.questionType)">
-              {{ record.questionType }}
+              {{ getQuestionTypeText(record.questionType) }}
+            </a-tag>
+          </template>
+          <template v-if="column.key === 'isMastered'">
+            <a-tag :color="record.isMastered === '1' ? 'success' : 'warning'">
+              {{ record.isMastered === '1' ? '已掌握' : '未掌握' }}
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
             <a-space>
               <a-button type="link" size="small" @click="viewDetail(record)">
                 详情
-              </a-button>
-              <a-button type="link" size="small" @click="editError(record)">
-                编辑
               </a-button>
               <a-popconfirm
                 title="确定要删除这道错题吗？"
@@ -119,20 +116,29 @@
       @ok="handleImport"
       @cancel="importModalVisible = false"
     >
-      <a-upload-dragger
-        v-model:fileList="fileList"
-        :before-upload="beforeUpload"
-        accept=".xlsx,.xls"
-        :max-count="1"
-      >
-        <p class="ant-upload-drag-icon">
-          <InboxOutlined />
-        </p>
-        <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-        <p class="ant-upload-hint">
-          仅支持 Excel 格式文件（.xlsx, .xls）
-        </p>
-      </a-upload-dragger>
+      <div class="import-modal-content">
+        <a-button
+          type="link"
+          class="download-template-btn"
+          @click="handleDownloadTemplate"
+        >
+          <DownloadOutlined /> 下载导入模板
+        </a-button>
+        <a-upload-dragger
+          v-model:fileList="fileList"
+          :before-upload="beforeUpload"
+          accept=".xlsx,.xls"
+          :max-count="1"
+        >
+          <p class="ant-upload-drag-icon">
+            <InboxOutlined />
+          </p>
+          <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
+          <p class="ant-upload-hint">
+            仅支持 Excel 格式文件（.xlsx, .xls）
+          </p>
+        </a-upload-dragger>
+      </div>
     </a-modal>
 
     <!-- 错题详情弹窗 -->
@@ -146,47 +152,21 @@
         <a-descriptions bordered :column="2">
           <a-descriptions-item label="题目类型">
             <a-tag :color="getQuestionTypeColor(currentError.questionType)">
-              {{ currentError.questionType }}
+              {{ getQuestionTypeText(currentError.questionType) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="所属任务">{{ currentError.className }}</a-descriptions-item>
-          <a-descriptions-item label="错误日期" :span="2">{{ currentError.errorDate }}</a-descriptions-item>
+          <a-descriptions-item label="所属任务">{{ currentError.taskName }}</a-descriptions-item>
+          <a-descriptions-item label="错误日期" :span="2">{{ currentError.wrongDate }}</a-descriptions-item>
         </a-descriptions>
 
         <a-divider>题目内容</a-divider>
         <div class="question-content">
-          <p><strong>题目：</strong>{{ currentError.question }}</p>
+          <p><strong>题目：</strong>{{ currentError.questionContent }}</p>
         </div>
 
-        <div v-if="currentError.options && currentError.options.length > 0" class="options-section">
-          <p><strong>选项：</strong></p>
-          <div 
-            v-for="(option, index) in currentError.options" 
-            :key="index"
-            class="option-item"
-            :class="{
-              'correct-option': option.key === currentError.correctAnswer,
-              'wrong-option': option.key === currentError.userAnswer && option.key !== currentError.correctAnswer
-            }"
-          >
-            {{ option.key }}. {{ option.value }}
-            <a-tag v-if="option.key === currentError.correctAnswer" color="success" style="margin-left: 10px">
-              正确答案
-            </a-tag>
-            <a-tag v-if="option.key === currentError.userAnswer && option.key !== currentError.correctAnswer" color="error" style="margin-left: 10px">
-              您的答案
-            </a-tag>
-          </div>
-        </div>
-
-        <div v-else class="answer-section">
+        <div class="answer-section">
           <p><strong>正确答案：</strong><span class="correct-text">{{ currentError.correctAnswer }}</span></p>
           <p><strong>您的答案：</strong><span class="wrong-text">{{ currentError.userAnswer }}</span></p>
-        </div>
-
-        <div v-if="currentError.explanation" class="explanation-section">
-          <a-divider>解析</a-divider>
-          <p>{{ currentError.explanation }}</p>
         </div>
       </div>
     </a-modal>
@@ -222,8 +202,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { getWrongQuestions, deleteWrongQuestions, getWrongQuestionDetail, downloadWrongTemplate, exportWrongQuestions } from '@/services/myError'
 import {
   UploadOutlined,
   DownloadOutlined,
@@ -232,159 +213,120 @@ import {
   FilePdfOutlined,
   SearchOutlined,
   ReloadOutlined,
-  InboxOutlined
+  InboxOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 
 // 表格列配置
 const columns = [
-  { title: '题目', dataIndex: 'question', key: 'question', width: 300, ellipsis: true },
-  { title: '题目类型', dataIndex: 'questionType', key: 'questionType', width: 120 },
-  { title: '所属班级', dataIndex: 'className', key: 'className', width: 120 },
-  { title: '错误日期', dataIndex: 'errorDate', key: 'errorDate', width: 150 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' },
+  { title: '题目内容', dataIndex: 'questionContent', key: 'questionContent', width: 350, ellipsis: true },
+  { title: '题目类型', dataIndex: 'questionType', key: 'questionType', width: 100 },
+  { title: '所属任务', dataIndex: 'taskName', key: 'taskName', width: 150, ellipsis: true },
+  { title: '错误日期', dataIndex: 'wrongDate', key: 'wrongDate', width: 160 },
+  { title: '错误次数', dataIndex: 'wrongCount', key: 'wrongCount', width: 80 },
+//  { title: '掌握状态', dataIndex: 'isMastered', key: 'isMastered', width: 80 },
+  { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ]
 
-// 错题数据（模拟从任务中自动记录的错题）
-const errorList = ref([
-  {
-    id: 1,
-    question: '单词 "abandon" 的中文意思是？',
-    questionType: '选择题',
-    className: 'B2班',
-    errorDate: '2024-02-08 14:30',
-    options: [
-      { key: 'A', value: '放弃' },
-      { key: 'B', value: '能力' },
-      { key: 'C', value: '缺席' },
-      { key: 'D', value: '吸收' },
-    ],
-    correctAnswer: 'A',
-    userAnswer: 'B',
-    explanation: 'abandon 是动词，意为"放弃、抛弃"。',
-  },
-  {
-    id: 2,
-    question: '请翻译单词 "ability"',
-    questionType: '单词拼写',
-    className: 'B2班',
-    errorDate: '2024-02-08 14:35',
-    correctAnswer: '能力',
-    userAnswer: '才能',
-    explanation: 'ability 的准确翻译是"能力"。',
-  },
-  {
-    id: 3,
-    question: '单词 "absent" 的中文意思是？',
-    questionType: '选择题',
-    className: 'C1班',
-    errorDate: '2024-01-25 10:20',
-    options: [
-      { key: 'A', value: '出席的' },
-      { key: 'B', value: '缺席的' },
-      { key: 'C', value: '抽象的' },
-      { key: 'D', value: '绝对的' },
-    ],
-    correctAnswer: 'B',
-    userAnswer: 'A',
-    explanation: 'absent 是形容词，意为"缺席的、不在的"。',
-  },
-  {
-    id: 4,
-    question: '填空：I have the _____ to finish this task. (能力)',
-    questionType: '填空题',
-    className: 'B2班',
-    errorDate: '2024-02-07 16:45',
-    correctAnswer: 'ability',
-    userAnswer: 'abilities',
-    explanation: '此处应该用单数形式 ability。',
-  },
-  {
-    id: 5,
-    question: '单词 "accept" 的中文意思是？',
-    questionType: '选择题',
-    className: 'C1班',
-    errorDate: '2024-01-20 09:15',
-    options: [
-      { key: 'A', value: '拒绝' },
-      { key: 'B', value: '接受' },
-      { key: 'C', value: '期待' },
-      { key: 'D', value: '除了' },
-    ],
-    correctAnswer: 'B',
-    userAnswer: 'D',
-    explanation: 'accept 是动词，意为"接受、认可"。注意不要与 except（除了）混淆。',
-  },
-])
+// 错题数据列表
+const errorList = ref([])
+const loading = ref(false)
 
 // 筛选条件
 const filterType = ref('')
 const filterDateRange = ref(null)
 
-// 筛选后的错题列表
-const filteredErrors = computed(() => {
-  let result = [...errorList.value]
-
-  // 按题目类型筛选
-  if (filterType.value) {
-    result = result.filter(item => item.questionType === filterType.value)
+// 加载错题列表
+const loadErrorList = async () => {
+  loading.value = true
+  try {
+    const params = {}
+    if (filterType.value) {
+      params.questionType = filterType.value
+    }
+    if (filterDateRange.value && filterDateRange.value.length === 2) {
+      params.beginDate = filterDateRange.value[0].format('YYYY-MM-DD')
+      params.endDate = filterDateRange.value[1].format('YYYY-MM-DD')
+    }
+    const res = await getWrongQuestions(params)
+    errorList.value = res.data || []
+  } catch (error) {
+    console.error('加载错题列表失败:', error)
+  } finally {
+    loading.value = false
   }
+}
 
-  // 按日期范围筛选
-  if (filterDateRange.value && filterDateRange.value.length === 2) {
-    const [startDate, endDate] = filterDateRange.value
-    result = result.filter(item => {
-      const errorDate = new Date(item.errorDate)
-      return errorDate >= startDate && errorDate <= endDate
-    })
-  }
-
-  return result
+// 组件挂载时加载数据
+onMounted(() => {
+  loadErrorList()
 })
 
 // 应用筛选
 const applyFilter = () => {
-  message.success('筛选已应用')
+  loadErrorList()
 }
 
 // 重置筛选
 const resetFilter = () => {
   filterType.value = ''
   filterDateRange.value = null
-  message.info('筛选条件已重置')
+  loadErrorList()
+}
+
+// 获取题目类型文本
+const getQuestionTypeText = (type) => {
+  const typeMap = {
+    '1': '选择题',
+    '2': '单词拼写',
+    '3': '填空题'
+  }
+  return typeMap[type] || type
 }
 
 // 题目类型颜色
 const getQuestionTypeColor = (type) => {
   const colors = {
-    '选择题': 'blue',
-    '单词拼写': 'green',
-    '填空题': 'orange',
+    '1': 'blue',
+    '2': 'green',
+    '3': 'orange'
   }
   return colors[type] || 'default'
 }
 
 // 行选择
 const selectedRowKeys = ref([])
-const rowSelection = {
-  selectedRowKeys: selectedRowKeys,
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
   onChange: (keys) => {
     selectedRowKeys.value = keys
   },
-}
+}))
 
 // 批量删除
-const batchDelete = () => {
-  message.success(`已删除 ${selectedRowKeys.value.length} 条错题`)
-  errorList.value = errorList.value.filter(item => !selectedRowKeys.value.includes(item.id))
-  selectedRowKeys.value = []
+const batchDelete = async () => {
+  if (selectedRowKeys.value.length === 0) {
+    return
+  }
+  try {
+    await deleteWrongQuestions(selectedRowKeys.value)
+    message.success(`已删除 ${selectedRowKeys.value.length} 条错题`)
+    selectedRowKeys.value = []
+    loadErrorList()
+  } catch (error) {
+    console.error('批量删除错题失败:', error)
+  }
 }
 
 // 删除单个错题
-const deleteError = (record) => {
-  const index = errorList.value.findIndex(item => item.id === record.id)
-  if (index > -1) {
-    errorList.value.splice(index, 1)
+const deleteError = async (record) => {
+  try {
+    await deleteWrongQuestions([record.wrongId])
     message.success('删除成功')
+    loadErrorList()
+  } catch (error) {
+    console.error('删除错题失败:', error)
   }
 }
 
@@ -416,14 +358,39 @@ const handleImport = () => {
   fileList.value = []
 }
 
+// 下载导入模板
+const handleDownloadTemplate = async () => {
+  try {
+    message.loading({ content: '正在下载模板...', key: 'downloadTemplate' })
+    await downloadWrongTemplate()
+    message.success({ content: '模板下载成功！', key: 'downloadTemplate' })
+  } catch (error) {
+    message.error({ content: '模板下载失败，请重试', key: 'downloadTemplate' })
+  }
+}
+
 // 导出相关
-const handleExport = ({ key }) => {
-  if (key === 'excel') {
-    message.success('正在导出为 Excel 格式...')
-    // 实际应调用后端API生成Excel文件
-  } else if (key === 'pdf') {
-    message.success('正在导出为 PDF 格式...')
-    // 实际应调用后端API生成PDF文件
+const handleExport = async ({ key }) => {
+  // 如果有选中的错题，使用选中的；否则导出全部
+  const idsToExport = selectedRowKeys.value.length > 0 ? selectedRowKeys.value : errorList.value.map(item => item.wrongId)
+
+  if (idsToExport.length === 0) {
+    message.warning('没有可导出的错题')
+    return
+  }
+
+  try {
+    if (key === 'excel') {
+      message.loading({ content: '正在导出为 Excel 格式...', key: 'exportWrong' })
+      await exportWrongQuestions(idsToExport, 'xls')
+      message.success({ content: '导出成功！', key: 'exportWrong' })
+    } else if (key === 'pdf') {
+      message.loading({ content: '正在导出为 PDF 格式...', key: 'exportWrong' })
+      await exportWrongQuestions(idsToExport, 'pdf')
+      message.success({ content: '导出成功！', key: 'exportWrong' })
+    }
+  } catch (error) {
+    message.error({ content: '导出失败，请重试', key: 'exportWrong' })
   }
 }
 
@@ -431,9 +398,22 @@ const handleExport = ({ key }) => {
 const detailModalVisible = ref(false)
 const currentError = ref(null)
 
-const viewDetail = (record) => {
-  currentError.value = record
-  detailModalVisible.value = true
+const viewDetail = async (record) => {
+  loading.value = true
+  try {
+    const res = await getWrongQuestionDetail(record.wrongId)
+    if (res.code === 200 && res.data) {
+      currentError.value = res.data
+      detailModalVisible.value = true
+    } else {
+      message.error('获取错题详情失败')
+    }
+  } catch (error) {
+    console.error('获取错题详情失败:', error)
+    message.error('获取错题详情失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 编辑错题

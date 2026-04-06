@@ -215,6 +215,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, TeamOutlined, TrophyOutlined } from '@ant-design/icons-vue'
 import * as echarts from 'echarts'
+import { getMyClassInfo, getClassRanking, quitClass } from '@/services/myClass'
 
 const router = useRouter()
 
@@ -270,17 +271,42 @@ const dLevelClasses = computed(() => {
 
 // 当前班级信息
 const currentClass = ref({
-  level: 'B',
-  name: 'B2班',
-  teacher: '张老师',
-  studentCount: 45,
-  myRank: 8,
-  taskCount:80, //班级任务总数
-  avgCompletionRate: 82,
-  myCompletionRate: 100, // 改为 100 可测试换班按钮启用
-  totalTasks: 80,
-  completedTasks: 80
+  level: '',
+  name: '',
+  teacher: '',
+  studentCount: 0,
+  myRank: 0,
+  taskCount: 0,
+  avgCompletionRate: 0,
+  myCompletionRate: 0,
+  totalTasks: 0,
+  completedTasks: 0
 })
+
+// 加载我的班级信息
+const loadMyClassInfo = async () => {
+  try {
+    const res = await getMyClassInfo()
+    if (res.code === 200 && res.data) {
+      const data = res.data
+      currentClass.value = {
+        level: data.classLevel || '',
+        name: data.className || '',
+        teacher: data.teacherName || '',
+        studentCount: data.memberCount || 0,
+        myRank: data.myRank || 0,
+        taskCount: data.totalTasks || 0,
+        avgCompletionRate: data.classTaskCompletionRate || 0,
+        myCompletionRate: data.myTaskCompletionRate || 0,
+        totalTasks: data.totalTasks || 0,
+        completedTasks: data.completedTasks || 0
+      }
+      hasClass.value = !!data.classId
+    }
+  } catch (error) {
+    console.error('获取班级信息失败:', error)
+  }
+}
 
 // 是否可以换班（任务完成率达到100%）
 const canChangeClass = computed(() => currentClass.value.myCompletionRate === 100)
@@ -335,24 +361,35 @@ const rankColumns = [
   { title: '做题数', dataIndex: 'questionCount', key: 'questionCount', width: 100 },
 ]
 
-// 前15名数据
-const topRankData = ref([
-  { key: '1', rank: 1, name: '李明', completionRate: '100%', questionCount: 120, isMe: false },
-  { key: '2', rank: 2, name: '王芳', completionRate: '98%', questionCount: 115, isMe: false },
-  { key: '3', rank: 3, name: '张伟', completionRate: '96%', questionCount: 110, isMe: false },
-  { key: '4', rank: 4, name: '刘洋', completionRate: '95%', questionCount: 108, isMe: false },
-  { key: '5', rank: 5, name: '陈静', completionRate: '93%', questionCount: 105, isMe: false },
-  { key: '6', rank: 6, name: '赵强', completionRate: '92%', questionCount: 102, isMe: false },
-  { key: '7', rank: 7, name: '孙丽', completionRate: '90%', questionCount: 98, isMe: false },
-  { key: '8', rank: 8, name: '我', completionRate: '85%', questionCount: 95, isMe: true },
-  { key: '9', rank: 9, name: '周杰', completionRate: '83%', questionCount: 92, isMe: false },
-  { key: '10', rank: 10, name: '吴娜', completionRate: '82%', questionCount: 88, isMe: false },
-  { key: '11', rank: 11, name: '郑浩', completionRate: '80%', questionCount: 85, isMe: false },
-  { key: '12', rank: 12, name: '钱敏', completionRate: '78%', questionCount: 82, isMe: false },
-  { key: '13', rank: 13, name: '孙涛', completionRate: '76%', questionCount: 78, isMe: false },
-  { key: '14', rank: 14, name: '李娜', completionRate: '75%', questionCount: 75, isMe: false },
-  { key: '15', rank: 15, name: '王强', completionRate: '73%', questionCount: 72, isMe: false },
-])
+// 排行榜数据
+const topRankData = ref([])
+
+// 获取当前用户ID（假设从用户信息中获取）
+const getCurrentUserId = () => {
+  // 实际应从 store 或 localStorage 中获取
+  return null
+}
+
+// 加载班级排行榜
+const loadClassRanking = async () => {
+  try {
+    const res = await getClassRanking()
+    if (res.code === 200 && res.data) {
+      const currentUserId = getCurrentUserId()
+      topRankData.value = res.data.map((item, index) => ({
+        key: String(index + 1),
+        rank: item.rank || index + 1,
+        name: item.name || '',
+        completionRate: item.taskCompletionRate !== undefined ? `${item.taskCompletionRate}%` : '0%',
+        questionCount: item.questionCount || 0,
+        userId: item.userId,
+        isMe: item.userId && currentUserId && item.userId === currentUserId
+      }))
+    }
+  } catch (error) {
+    console.error('获取班级排行榜失败:', error)
+  }
+}
 
 // 轮播相关
 const currentIndex = ref(0)
@@ -523,20 +560,30 @@ const showExitModal = () => {
   exitModalVisible.value = true
 }
 
-const confirmExit = () => {
-  // 记录当前班级等级
-  lastClassLevel.value = currentClass.value.level
-  
-  // 实际应调用后端API退出班级
-  message.success(`已成功退出班级，您上次的班级等级为${lastClassLevel.value}级`)
-  exitModalVisible.value = false
-  hasClass.value = false
-  isFirstJoin.value = false // 退出后再入班就不是首次了
-  stopCarousel()
-  stopTableScroll()
-  
-  // 重置为上次等级或D级标签
-  selectedLevel.value = lastClassLevel.value || 'D'
+const confirmExit = async () => {
+  try {
+    const res = await quitClass()
+    if (res.code === 200 && res.data) {
+      // 记录当前班级等级
+      lastClassLevel.value = currentClass.value.level
+      
+      message.success('已成功退出班级')
+      exitModalVisible.value = false
+      hasClass.value = false
+      isFirstJoin.value = false
+      stopCarousel()
+      stopTableScroll()
+      
+      // 重置为上次等级或D级标签
+      selectedLevel.value = lastClassLevel.value || 'D'
+      
+      // 清空排行榜数据
+      topRankData.value = []
+    }
+  } catch (error) {
+    console.error('退出班级失败:', error)
+    message.error('退出班级失败，请重试')
+  }
 }
 
 // 跳转到换班中心
@@ -545,8 +592,10 @@ const goToChangeClass = () => {
 }
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  await loadMyClassInfo()
   if (hasClass.value) {
+    await loadClassRanking()
     initTrendChart()
     startTableScroll()
   }

@@ -20,8 +20,7 @@
           <a-statistic
             title="任务完成数"
             :value="statistics.weekTotalTime"
-            suffix="小时"
-            :precision="1"
+            suffix="个"
           >
             <template #prefix>
               <ClockCircleOutlined style="color: #52c41a" />
@@ -34,8 +33,7 @@
           <a-statistic
             title="总错题数"
             :value="statistics.weekAvgTime"
-            suffix="小时"
-            :precision="1"
+            suffix="个"
           >
             <template #prefix>
               <FieldTimeOutlined style="color: #faad14" />
@@ -139,13 +137,51 @@ import {
   ClockCircleOutlined,
   FieldTimeOutlined,
 } from '@ant-design/icons-vue'
+import { getStudentStats, getWeeklyTasks } from '@/services/myData'
 
 // 顶部统计数据
 const statistics = ref({
-  totalWords: 1250, // 累计查词量
-  weekTotalTime: 18.5, // 一周学习总时长
-  weekAvgTime: 2.6, // 一周日均学习时长
+  totalWords: 0,
+  weekTotalTime: 0,
+  weekAvgTime: 0,
 })
+
+// 获取学情统计数据
+const fetchStats = async () => {
+  try {
+    const res = await getStudentStats()
+    if (res.code === 200 && res.data) {
+      const data = res.data
+      statistics.value = {
+        totalWords: data.totalWordsSearched || 0,
+        weekTotalTime: data.tasksCompleted || 0,
+        weekAvgTime: data.wrongQuestions || 0,
+      }
+    }
+  } catch (error) {
+    console.error('获取学情统计失败:', error)
+  }
+}
+
+// 获取近七天任务完成情况
+const fetchWeeklyTasks = async () => {
+  try {
+    const res = await getWeeklyTasks()
+    if (res.code === 200 && res.data) {
+      const weekDayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+      dailyData.value = {
+        dates: res.data.map(item => {
+          const date = new Date(item.date)
+          return weekDayMap[date.getDay()]
+        }),
+        studyTime: res.data.map(item => item.completedCount || 0),
+        masteredWords: [],
+      }
+    }
+  } catch (error) {
+    console.error('获取近七天任务完成情况失败:', error)
+  }
+}
 
 // 图表实例
 const dailyChartRef = ref(null)
@@ -154,11 +190,11 @@ let dailyChart = null
 let compareChart = null
 
 // 每日学习数据
-const dailyData = {
-  dates: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-  studyTime: [2.5, 3.2, 2.8, 3.5, 2.0, 2.8, 1.7], // 学习时长（小时）
-  masteredWords: [45, 58, 52, 62, 38, 50, 32], // 掌握单词数
-}
+const dailyData = ref({
+  dates: [],
+  studyTime: [],
+  masteredWords: [],
+})
 
 // 班级vs个人完成率数据
 const compareData = {
@@ -248,7 +284,7 @@ const initDailyChart = () => {
       },
     },
     legend: {
-      data: ['学习时长', '掌握单词数'],
+      data: ['任务完成数'],
       bottom: 0,
     },
     grid: {
@@ -260,21 +296,13 @@ const initDailyChart = () => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: dailyData.dates,
+      data: dailyData.value.dates,
     },
     yAxis: [
       {
         type: 'value',
-        name: '时长(小时)',
+        name: '完成数(个)',
         position: 'left',
-        axisLabel: {
-          formatter: '{value}h',
-        },
-      },
-      {
-        type: 'value',
-        name: '单词数(个)',
-        position: 'right',
         axisLabel: {
           formatter: '{value}',
         },
@@ -282,10 +310,10 @@ const initDailyChart = () => {
     ],
     series: [
       {
-        name: '学习时长',
+        name: '任务完成数',
         type: 'line',
         smooth: true,
-        data: dailyData.studyTime,
+        data: dailyData.value.studyTime,
         itemStyle: {
           color: '#1890ff',
         },
@@ -293,22 +321,6 @@ const initDailyChart = () => {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
             { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
-          ]),
-        },
-      },
-      {
-        name: '掌握单词数',
-        type: 'line',
-        smooth: true,
-        yAxisIndex: 1,
-        data: dailyData.masteredWords,
-        itemStyle: {
-          color: '#52c41a',
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(82, 196, 26, 0.3)' },
-            { offset: 1, color: 'rgba(82, 196, 26, 0.05)' },
           ]),
         },
       },
@@ -390,7 +402,8 @@ const handleResize = () => {
   compareChart?.resize()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await Promise.all([fetchStats(), fetchWeeklyTasks()])
   initDailyChart()
   initCompareChart()
   window.addEventListener('resize', handleResize)
