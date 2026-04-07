@@ -102,7 +102,7 @@
                 </div>
                 <div class="info-item">
                   <TeamOutlined />
-                  <span>当前人数：{{ classItem.maxStudents }}人</span>
+                  <span>当前人数：{{ classItem.currentStudents || 0 }}人</span>
                 </div>
                 
                 <div class="info-item">
@@ -343,6 +343,7 @@ import PlusOutlined from '@ant-design/icons-vue/PlusOutlined'
 import TeamOutlined from '@ant-design/icons-vue/TeamOutlined'
 import CarryOutOutlined from '@ant-design/icons-vue/CarryOutOutlined'
 import ClockCircleOutlined from '@ant-design/icons-vue/ClockCircleOutlined'
+import { getClassOverview, getClassList, createClass } from '@/services/teacher/tmyClass'
 
 // 统计数据
 const statistics = reactive({
@@ -422,30 +423,29 @@ const handleCreateClass = async () => {
     await createFormRef.value.validate()
     createLoading.value = true
 
-    // 模拟API调用
-    setTimeout(() => {
-      const newClass = {
-        id: Date.now(),
-        level: createForm.level,
-        name: createForm.name,
-        taskCount: createForm.taskCount,
-        maxStudents: createForm.maxStudents,
-        createTime: new Date().toLocaleDateString(),
-        pendingCount: 0
-      }
+    // 调用创建班级接口
+    const res = await createClass({
+      classLevel: createForm.level,
+      className: createForm.name,
+      taskRequirement: createForm.taskCount,
+      maxStudents: createForm.maxStudents
+    })
 
-      classList.value.unshift(newClass)
-      statistics.totalClasses++
-
+    if (res.code === 200) {
       message.success('班级创建成功')
       createModalVisible.value = false
-      createLoading.value = false
-
       // 重置表单
       createFormRef.value.resetFields()
-    }, 1000)
+      // 刷新列表（静默失败，不影响用户体验）
+      loadClassList()
+      loadStatistics()
+    } else {
+      message.error(res.msg || '创建失败')
+    }
   } catch (error) {
     console.log('表单验证失败:', error)
+  } finally {
+    createLoading.value = false
   }
 }
 
@@ -628,53 +628,61 @@ const handleFilterChange = () => {
   // 筛选逻辑已通过 computed 实现
 }
 
-// 加载数据
-const loadData = () => {
-  // 模拟统计数据
-  statistics.totalStudents = 156
-  statistics.totalClasses = 8
-  statistics.avgCompletionRate = 78.5
-  statistics.pendingReviews = 12
-
-  // 模拟班级数据
-  classList.value = [
-    {
-      id: 1,
-      level: 'A',
-      name: '高级英语班',
-      taskCount: 80,
-      maxStudents: 40,
-      createTime: '2024-01-15',
-      pendingCount: 3
-    },
-    {
-      id: 2,
-      level: 'B',
-      name: '中级英语班',
-      taskCount: 70,
-      maxStudents: 45,
-      createTime: '2024-01-20',
-      pendingCount: 5
-    },
-    {
-      id: 3,
-      level: 'C',
-      name: '初级英语班',
-      taskCount: 65,
-      maxStudents: 50,
-      createTime: '2024-02-01',
-      pendingCount: 2
-    },
-    {
-      id: 4,
-      level: 'D',
-      name: '基础英语班',
-      taskCount: 60,
-      maxStudents: 35,
-      createTime: '2024-02-05',
-      pendingCount: 0
+// 加载统计数据
+const loadStatistics = async () => {
+  try {
+    const overviewRes = await getClassOverview()
+    if (overviewRes.code === 200 && overviewRes.data) {
+      statistics.totalStudents = overviewRes.data.totalStudents || 0
+      statistics.totalClasses = overviewRes.data.totalClasses || 0
+      statistics.avgCompletionRate = overviewRes.data.avgCompletionRate || 0
+      statistics.pendingReviews = overviewRes.data.pendingApplications || 0
     }
-  ]
+  } catch (error) {
+    console.error('获取概览数据失败:', error)
+  }
+}
+
+// 加载班级列表
+const loadClassList = async () => {
+  try {
+    const listRes = await getClassList({
+      classLevel: filterLevel.value || undefined,
+      pageNum: pagination.current,
+      pageSize: pagination.pageSize
+    })
+    if (listRes.code === 200 && listRes.data) {
+      // 映射接口字段到页面字段
+      classList.value = listRes.data.rows.map(item => ({
+        id: item.classId,
+        name: item.className,
+        level: item.classLevel,
+        currentStudents: item.currentStudents,
+        maxStudents: item.maxStudents,
+        taskCount: item.taskCount,
+        createTime: formatDate(item.createTime),
+        pendingCount: item.pendingApplicationCount
+      }))
+      pagination.total = listRes.data.total || 0
+    }
+  } catch (error) {
+    console.error('获取班级列表失败:', error)
+  }
+}
+
+// 加载所有数据
+const loadData = async () => {
+  await Promise.all([loadStatistics(), loadClassList()])
+}
+
+// 格式化日期
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 onMounted(() => {
