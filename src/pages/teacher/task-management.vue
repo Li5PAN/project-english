@@ -164,6 +164,7 @@ import FileTextOutlined from '@ant-design/icons-vue/FileTextOutlined'
 import ClockCircleOutlined from '@ant-design/icons-vue/ClockCircleOutlined'
 import CheckCircleOutlined from '@ant-design/icons-vue/CheckCircleOutlined'
 import ApartmentOutlined from '@ant-design/icons-vue/ApartmentOutlined'
+import { getTaskList, getTaskDetail, sendTaskReminder } from '@/services/teacher/tmyTask'
 
 // 筛选条件
 const filterLevel = ref('')
@@ -214,107 +215,143 @@ const getQuestionTypeLabel = (type) => {
 }
 
 // 显示任务详情
-const showTaskDetail = (task) => {
-  selectedTask.value = task
-  detailModalVisible.value = true
+const showTaskDetail = async (task) => {
+  try {
+    const res = await getTaskDetail(task.id)
+
+    if (res.code === 200) {
+      const detail = res.data
+
+      // 将 API 返回的数据映射到组件需要的格式
+      selectedTask.value = {
+        id: detail.taskId,
+        taskName: detail.taskName,
+        classId: detail.classId,
+        className: detail.className,
+        classLevel: detail.classLevel,
+        questionCount: detail.questionCount,
+        startTime: detail.startTime,
+        deadline: detail.endTime,
+        completedCount: detail.completedCount,
+        totalStudents: detail.totalStudents,
+        taskStatus: detail.taskStatus,
+        createTime: detail.publishTime,
+        questions: (detail.questions || []).map(q => {
+          // 将题型数字转换为字符串
+          const typeMap = {
+            '1': 'choice',
+            '2': 'fillBlank',
+            '3': 'spelling'
+          }
+
+          // 解析选项 JSON 字符串
+          let options = null
+          let correctIndexes = null
+          let answer = q.correctAnswer
+
+          if (q.options) {
+            try {
+              const parsedOptions = JSON.parse(q.options)
+              // 转换为数组格式
+              options = Object.values(parsedOptions)
+              // 找到正确答案的索引
+              const correctKey = Object.keys(parsedOptions).find(
+                key => key === q.correctAnswer || parsedOptions[key] === q.correctAnswer
+              )
+              if (correctKey) {
+                correctIndexes = [Object.keys(parsedOptions).indexOf(correctKey)]
+              }
+            } catch (e) {
+              // 解析失败，options 保持为空
+            }
+          }
+
+          return {
+            type: typeMap[q.questionType] || 'choice',
+            content: q.questionContent,
+            options: options,
+            correctIndexes: correctIndexes,
+            answer: answer
+          }
+        })
+      }
+
+      detailModalVisible.value = true
+    } else {
+      message.error(res.msg || '获取任务详情失败')
+    }
+  } catch (error) {
+    console.error('获取任务详情失败:', error)
+    message.error('获取任务详情失败')
+  }
 }
 
 // 督促完成
-const remindStudents = (task) => {
+const remindStudents = async (task) => {
   const uncompletedCount = task.totalStudents - task.completedCount
   if (uncompletedCount === 0) {
     message.info('所有学生已完成该任务')
     return
   }
-  
-  message.success(`已向 ${uncompletedCount} 名未完成学生发送督促提示`)
-  console.log('督促任务:', task.taskName, '未完成人数:', uncompletedCount)
+
+  try {
+    const res = await sendTaskReminder({
+      taskId: task.id,
+      reminderType: 0
+    })
+
+    if (res.code === 200) {
+      message.success(`已向 ${uncompletedCount} 名未完成学生发送督促提示`)
+    } else {
+      message.error(res.msg || '发送督促失败')
+    }
+  } catch (error) {
+    console.error('发送督促失败:', error)
+    message.error('发送督促失败')
+  }
 }
 
-// 加载数据
-const loadData = () => {
-  // 模拟任务数据
-  taskList.value = [
-    {
-      id: 1,
-      taskName: '第一单元词汇测试',
-      className: '高级英语班',
-      classLevel: 'A',
-      questionCount: 20,
-      startTime: '2024-02-10 08:00',
-      deadline: '2024-02-15 23:59',
-      completedCount: 25,
-      totalStudents: 40,
-      createTime: '2024-02-08 10:30',
-      questions: [
-        {
-          type: 'choice',
-          content: 'What is the capital of France?',
-          options: ['London', 'Paris', 'Berlin', 'Madrid'],
-          correctIndexes: [1],
-          answer: 'B'
-        },
-        {
-          type: 'fillBlank',
-          content: 'The sky is ___.',
-          answer: 'blue'
-        },
-        {
-          type: 'spelling',
-          content: '拼写单词：美丽的',
-          answer: 'beautiful'
-        }
-      ]
-    },
-    {
-      id: 2,
-      taskName: '语法练习题',
-      className: '中级英语班',
-      classLevel: 'B',
-      questionCount: 15,
-      startTime: '2024-02-11 08:00',
-      deadline: '2024-02-16 23:59',
-      completedCount: 40,
-      totalStudents: 45,
-      createTime: '2024-02-08 14:20',
-      questions: [
-        {
-          type: 'choice',
-          content: 'Choose the correct tense: I ___ to school yesterday.',
-          options: ['go', 'went', 'going', 'goes'],
-          correctIndexes: [1],
-          answer: 'B'
-        }
-      ]
-    },
-    {
-      id: 3,
-      taskName: '阅读理解练习',
-      className: '初级英语班',
-      classLevel: 'C',
-      questionCount: 10,
-      startTime: '2024-02-09 08:00',
-      deadline: '2024-02-14 23:59',
-      completedCount: 48,
-      totalStudents: 50,
-      createTime: '2024-02-07 09:15',
-      questions: []
-    },
-    {
-      id: 4,
-      taskName: '听力训练',
-      className: '基础英语班',
-      classLevel: 'D',
-      questionCount: 12,
-      startTime: '2024-02-12 08:00',
-      deadline: '2024-02-17 23:59',
-      completedCount: 10,
-      totalStudents: 35,
-      createTime: '2024-02-08 16:45',
-      questions: []
+// 加载任务列表数据
+const loadData = async () => {
+  try {
+    const params = {
+      classLevel: filterLevel.value || undefined,
+      pageNum: 1,
+      pageSize: 100
     }
-  ]
+
+    const res = await getTaskList(params)
+
+    if (res.code === 200) {
+      // 将 API 返回的数据映射到组件需要的字段格式
+      taskList.value = res.rows.map(item => ({
+        id: item.taskId,
+        taskName: item.taskName,
+        classId: item.classId,
+        className: item.className,
+        classLevel: item.classLevel,
+        questionCount: item.questionCount,
+        startTime: item.startTime,
+        deadline: item.endTime, // API 返回 endTime，组件使用 deadline
+        completedCount: item.completedCount,
+        totalStudents: item.totalStudents,
+        taskStatus: item.taskStatus,
+        questions: [] // 详情题目列表在查看详情时再请求
+      }))
+    } else {
+      message.error(res.msg || '加载任务列表失败')
+    }
+  } catch (error) {
+    console.error('加载任务列表失败:', error)
+    message.error('加载任务列表失败')
+  }
 }
+
+// 监听筛选条件变化，重新加载数据
+import { watch } from 'vue'
+watch(filterLevel, () => {
+  loadData()
+})
 
 onMounted(() => {
   loadData()

@@ -6,6 +6,7 @@
         <a-table 
           :columns="joinColumns" 
           :data-source="joinApplications" 
+          :loading="loading"
           :pagination="{ pageSize: 10 }"
           :row-key="record => record.id"
         >
@@ -34,6 +35,7 @@
         <a-table 
           :columns="transferColumns" 
           :data-source="transferApplications" 
+          :loading="loading"
           :pagination="{ pageSize: 10 }"
           :row-key="record => record.id"
         >
@@ -67,6 +69,7 @@
         <a-table 
           :columns="quitColumns" 
           :data-source="quitApplications" 
+          :loading="loading"
           :pagination="{ pageSize: 10 }"
           :row-key="record => record.id"
         >
@@ -96,16 +99,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { getApplicationList } from '@/services/teacher/myStudent'
 
 // 当前激活的标签页
 const activeTab = ref('join')
+
+// 加载状态
+const loading = ref(false)
 
 // 入班申请列表列定义
 const joinColumns = [
   {
     title: '姓名',
-    dataIndex: 'studentName',
-    key: 'studentName',
+    dataIndex: 'userName',
+    key: 'userName',
     width: 120
   },
   {
@@ -121,14 +128,14 @@ const joinColumns = [
   },
   {
     title: '发起申请时间',
-    dataIndex: 'applyTime',
-    key: 'applyTime',
+    dataIndex: 'applicationTime',
+    key: 'applicationTime',
     width: 180
   },
   {
     title: '申请理由',
-    dataIndex: 'reason',
-    key: 'reason',
+    dataIndex: 'applicationReason',
+    key: 'applicationReason',
     ellipsis: true
   },
   {
@@ -143,8 +150,8 @@ const joinColumns = [
 const transferColumns = [
   {
     title: '姓名',
-    dataIndex: 'studentName',
-    key: 'studentName',
+    dataIndex: 'userName',
+    key: 'userName',
     width: 120
   },
   {
@@ -171,14 +178,14 @@ const transferColumns = [
   },
   {
     title: '发起申请时间',
-    dataIndex: 'applyTime',
-    key: 'applyTime',
+    dataIndex: 'applicationTime',
+    key: 'applicationTime',
     width: 180
   },
   {
     title: '转换理由',
-    dataIndex: 'reason',
-    key: 'reason',
+    dataIndex: 'applicationReason',
+    key: 'applicationReason',
     ellipsis: true
   },
   {
@@ -193,8 +200,8 @@ const transferColumns = [
 const quitColumns = [
   {
     title: '姓名',
-    dataIndex: 'studentName',
-    key: 'studentName',
+    dataIndex: 'userName',
+    key: 'userName',
     width: 120
   },
   {
@@ -210,14 +217,14 @@ const quitColumns = [
   },
   {
     title: '发起申请时间',
-    dataIndex: 'applyTime',
-    key: 'applyTime',
+    dataIndex: 'applicationTime',
+    key: 'applicationTime',
     width: 180
   },
   {
     title: '申请理由',
-    dataIndex: 'reason',
-    key: 'reason',
+    dataIndex: 'applicationReason',
+    key: 'applicationReason',
     ellipsis: true
   },
   {
@@ -256,7 +263,7 @@ const handleApprove = (record, type) => {
     quit: '退班'
   }
   
-  message.success(`已通过 ${record.studentName} 的${typeMap[type]}申请`)
+  message.success(`已通过 ${record.userName} 的${typeMap[type]}申请`)
   
   // 从列表中移除该申请
   if (type === 'join') {
@@ -276,7 +283,7 @@ const handleReject = (record, type) => {
     quit: '退班'
   }
   
-  message.warning(`已拒绝 ${record.studentName} 的${typeMap[type]}申请`)
+  message.warning(`已拒绝 ${record.userName} 的${typeMap[type]}申请`)
   
   // 从列表中移除该申请
   if (type === 'join') {
@@ -288,79 +295,41 @@ const handleReject = (record, type) => {
   }
 }
 
-// 加载数据
-const loadData = () => {
-  // 模拟入班申请数据
-  joinApplications.value = [
-    {
-      id: 1,
-      studentName: '张三',
-      className: '高级英语班',
-      classLevel: 'A',
-      applyTime: '2024-02-08 10:30',
-      reason: '希望提升英语水平，加入高级班学习更多高级语法和词汇'
-    },
-    {
-      id: 2,
-      studentName: '李四',
-      className: '中级英语班',
-      classLevel: 'B',
-      applyTime: '2024-02-08 11:20',
-      reason: '想要系统学习英语，中级班的课程安排比较适合我'
-    },
-    {
-      id: 3,
-      studentName: '王五',
-      className: '初级英语班',
-      classLevel: 'C',
-      applyTime: '2024-02-08 14:15',
-      reason: '英语基础较弱，希望从初级班开始打好基础'
+// 加载申请数据
+const loadData = async () => {
+  loading.value = true
+  try {
+    // 加载入班申请数据 (applicationType: 1)
+    const joinRes = await getApplicationList({ applicationType: '1' })
+    if (joinRes.code === 200) {
+      joinApplications.value = joinRes.rows.map(item => ({
+        ...item,
+        id: item.applicationId
+      }))
     }
-  ]
 
-  // 模拟换班申请数据
-  transferApplications.value = [
-    {
-      id: 1,
-      studentName: '赵六',
-      fromClassName: '初级英语班',
-      fromClassLevel: 'C',
-      toClassName: '中级英语班',
-      toClassLevel: 'B',
-      applyTime: '2024-02-07 09:45',
-      reason: '初级班的内容已经掌握得比较好，希望转入中级班继续学习'
-    },
-    {
-      id: 2,
-      studentName: '孙七',
-      fromClassName: '中级英语班',
-      fromClassLevel: 'B',
-      toClassName: '高级英语班',
-      toClassLevel: 'A',
-      applyTime: '2024-02-07 16:30',
-      reason: '中级班的学习进度较快，想挑战更高难度的课程'
+    // 加载换班申请数据 (applicationType: 2)
+    const transferRes = await getApplicationList({ applicationType: '2' })
+    if (transferRes.code === 200) {
+      transferApplications.value = transferRes.rows.map(item => ({
+        ...item,
+        id: item.applicationId
+      }))
     }
-  ]
 
-  // 模拟退班申请数据
-  quitApplications.value = [
-    {
-      id: 1,
-      studentName: '周八',
-      className: '基础英语班',
-      classLevel: 'D',
-      applyTime: '2024-02-06 13:20',
-      reason: '个人时间安排有冲突，暂时无法继续学习'
-    },
-    {
-      id: 2,
-      studentName: '吴九',
-      className: '高级英语班',
-      classLevel: 'A',
-      applyTime: '2024-02-06 15:50',
-      reason: '课程难度较大，学习压力过大，希望退班调整'
+    // 加载退班申请数据 (applicationType: 3)
+    const quitRes = await getApplicationList({ applicationType: '3' })
+    if (quitRes.code === 200) {
+      quitApplications.value = quitRes.rows.map(item => ({
+        ...item,
+        id: item.applicationId
+      }))
     }
-  ]
+  } catch (error) {
+    message.error('加载申请数据失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

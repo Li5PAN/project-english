@@ -146,22 +146,38 @@ import SolutionOutlined from '@ant-design/icons-vue/SolutionOutlined'
 import AuditOutlined from '@ant-design/icons-vue/AuditOutlined'
 import UserAddOutlined from '@ant-design/icons-vue/UserAddOutlined'
 import CheckCircleOutlined from '@ant-design/icons-vue/CheckCircleOutlined'
+import { getDashboardData } from '@/services/admin/aindex'
 
 const router = useRouter()
 
 // 总数据统计
 const statistics = reactive({
-  totalStudents: 156,
-  totalClasses: 8,
-  totalTeachers: 12
+  totalStudents: 0,
+  totalClasses: 0,
+  totalTeachers: 0
 })
 
 // 待处理事项
 const pendingTasks = reactive({
-  pendingClasses: 3,
-  newUsers: 8,
-  activeUsers: 45
+  pendingClasses: 0,
+  newUsers: 0,
+  activeUsers: 0
 })
+
+// 获取首页数据
+const fetchDashboardData = async () => {
+  try {
+    const res = await getDashboardData()
+    if (res.code === 200 && res.data) {
+      statistics.totalStudents = res.data.totalStudents || 0
+      statistics.totalClasses = res.data.totalClasses || 0
+      statistics.totalTeachers = res.data.totalTeachers || 0
+      pendingTasks.pendingClasses = res.data.pendingClasses || 0
+    }
+  } catch (error) {
+    console.error('获取首页数据失败:', error)
+  }
+}
 
 // 图表数据标识
 const hasTransferData = ref(true)
@@ -499,7 +515,8 @@ const handleResize = () => {
   classDistributionChartInstance?.resize()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchDashboardData()
   nextTick(() => {
     initUserGrowthChart()
     initClassDistributionChart()

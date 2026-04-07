@@ -41,7 +41,7 @@
             :columns="reviewColumns" 
             :data-source="filteredReviewList" 
             :pagination="{ pageSize: 10 }"
-            :row-key="record => record.id"
+            :row-key="record => record.classId"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'classLevel'">
@@ -71,7 +71,8 @@
             :columns="managementColumns" 
             :data-source="filteredManagementList" 
             :pagination="{ pageSize: 10 }"
-            :row-key="record => record.id"
+            :loading="managementLoading"
+            :row-key="record => record.classId"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'classLevel'">
@@ -99,9 +100,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import SearchOutlined from '@ant-design/icons-vue/SearchOutlined'
+import { getAuditList, getManageList, auditClass, deleteClass } from '@/services/admin/aclass'
 
 // 当前激活的标签页
 const activeTab = ref('review')
+
+// 监听标签页切换
+import { watch } from 'vue'
+watch(activeTab, (newTab) => {
+  if (newTab === 'management' && managementList.value.length === 0) {
+    loadManagementList()
+  }
+})
 
 // 老师名字搜索
 const teacherSearch = ref('')
@@ -112,12 +122,21 @@ const reviewList = ref([])
 // 班级管理列表
 const managementList = ref([])
 
+// 加载状态
+const managementLoading = ref(false)
+
 // 班级审核列表列定义
 const reviewColumns = [
   {
-    title: '名称',
-    dataIndex: 'name',
-    key: 'name',
+    title: '班级ID',
+    dataIndex: 'classId',
+    key: 'classId',
+    width: 80
+  },
+  {
+    title: '班级名称',
+    dataIndex: 'className',
+    key: 'className',
     width: 150
   },
   {
@@ -127,9 +146,9 @@ const reviewColumns = [
     width: 100
   },
   {
-    title: '老师',
-    dataIndex: 'teacher',
-    key: 'teacher',
+    title: '创建者',
+    dataIndex: 'creatorName',
+    key: 'creatorName',
     width: 120
   },
   {
@@ -139,16 +158,10 @@ const reviewColumns = [
     width: 180
   },
   {
-    title: '班级限定人数',
+    title: '最大学生数',
     dataIndex: 'maxStudents',
     key: 'maxStudents',
-    width: 120
-  },
-  {
-    title: '班级任务数',
-    dataIndex: 'taskCount',
-    key: 'taskCount',
-    width: 120
+    width: 100
   },
   {
     title: '操作',
@@ -161,9 +174,15 @@ const reviewColumns = [
 // 班级管理列表列定义
 const managementColumns = [
   {
-    title: '名称',
-    dataIndex: 'name',
-    key: 'name',
+    title: '班级ID',
+    dataIndex: 'classId',
+    key: 'classId',
+    width: 80
+  },
+  {
+    title: '班级名称',
+    dataIndex: 'className',
+    key: 'className',
     width: 150
   },
   {
@@ -173,9 +192,9 @@ const managementColumns = [
     width: 100
   },
   {
-    title: '老师',
-    dataIndex: 'teacher',
-    key: 'teacher',
+    title: '创建者',
+    dataIndex: 'creatorName',
+    key: 'creatorName',
     width: 120
   },
   {
@@ -185,16 +204,16 @@ const managementColumns = [
     width: 180
   },
   {
-    title: '学生人数',
-    dataIndex: 'studentCount',
-    key: 'studentCount',
+    title: '当前学生数',
+    dataIndex: 'currentStudents',
+    key: 'currentStudents',
     width: 100
   },
   {
-    title: '班级任务数',
-    dataIndex: 'taskCount',
-    key: 'taskCount',
-    width: 120
+    title: '进行中任务',
+    dataIndex: 'ongoingTasks',
+    key: 'ongoingTasks',
+    width: 100
   },
   {
     title: '操作',
@@ -210,7 +229,7 @@ const filteredReviewList = computed(() => {
     return reviewList.value
   }
   return reviewList.value.filter(item => 
-    item.teacher.toLowerCase().includes(teacherSearch.value.toLowerCase())
+    item.creatorName.toLowerCase().includes(teacherSearch.value.toLowerCase())
   )
 })
 
@@ -220,7 +239,7 @@ const filteredManagementList = computed(() => {
     return managementList.value
   }
   return managementList.value.filter(item => 
-    item.teacher.toLowerCase().includes(teacherSearch.value.toLowerCase())
+    item.creatorName.toLowerCase().includes(teacherSearch.value.toLowerCase())
   )
 })
 
@@ -241,32 +260,39 @@ const handleSearch = () => {
 }
 
 // 处理通过审核
-const handleApprove = (record) => {
+const handleApprove = async (record) => {
   Modal.confirm({
     title: '确认通过',
-    content: `确定通过 "${record.name}" 的班级创建申请吗？`,
+    content: `确定通过 "${record.className}" 的班级创建申请吗？`,
     okText: '确认',
     cancelText: '取消',
-    onOk() {
-      // 从审核列表移除
-      reviewList.value = reviewList.value.filter(item => item.id !== record.id)
-      // 添加到管理列表
-      managementList.value.unshift(record)
-      message.success('审核通过')
+    async onOk() {
+      try {
+        await auditClass(record.classId, true)
+        reviewList.value = reviewList.value.filter(item => item.classId !== record.classId)
+        message.success('审核通过')
+      } catch (error) {
+        message.error('操作失败')
+      }
     }
   })
 }
 
 // 处理拒绝审核
-const handleReject = (record) => {
+const handleReject = async (record) => {
   Modal.confirm({
     title: '确认拒绝',
-    content: `确定拒绝 "${record.name}" 的班级创建申请吗？`,
+    content: `确定拒绝 "${record.className}" 的班级创建申请吗？`,
     okText: '确认',
     cancelText: '取消',
-    onOk() {
-      reviewList.value = reviewList.value.filter(item => item.id !== record.id)
-      message.warning('已拒绝该申请')
+    async onOk() {
+      try {
+        await auditClass(record.classId, false)
+        reviewList.value = reviewList.value.filter(item => item.classId !== record.classId)
+        message.warning('已拒绝该申请')
+      } catch (error) {
+        message.error('操作失败')
+      }
     }
   })
 }
@@ -275,127 +301,48 @@ const handleReject = (record) => {
 const handleDelete = (record) => {
   Modal.confirm({
     title: '确认删除',
-    content: `确定删除班级 "${record.name}" 吗？此操作不可恢复。`,
+    content: `确定删除班级 "${record.name || record.className}" 吗？此操作不可恢复。`,
     okText: '确认',
     cancelText: '取消',
-    onOk() {
-      managementList.value = managementList.value.filter(item => item.id !== record.id)
-      message.success('删除成功')
+    async onOk() {
+      try {
+        await deleteClass(record.classId)
+        managementList.value = managementList.value.filter(item => item.classId !== record.classId)
+        message.success('删除成功')
+      } catch (error) {
+        message.error('删除失败')
+      }
     }
   })
 }
 
-// 随机生成60-100的整数
-const randomTaskCount = () => Math.floor(Math.random() * 41) + 60
-
 // 加载数据
-const loadData = () => {
-  // 模拟班级审核数据
-  reviewList.value = [
-    {
-      id: 1,
-      name: '高级英语强化班',
-      classLevel: 'A',
-      teacher: '张老师',
-      createTime: '2024-02-10 10:30',
-      maxStudents: 40,
-      taskCount: randomTaskCount()
-    },
-    {
-      id: 2,
-      name: '中级英语提升班',
-      classLevel: 'B',
-      teacher: '李老师',
-      createTime: '2024-02-10 14:20',
-      maxStudents: 45,
-      taskCount: randomTaskCount()
-    },
-    {
-      id: 3,
-      name: '初级英语入门班',
-      classLevel: 'C',
-      teacher: '王老师',
-      createTime: '2024-02-11 09:15',
-      maxStudents: 50,
-      taskCount: randomTaskCount()
+const loadData = async () => {
+  try {
+    const response = await getAuditList()
+    if (response.code === 200) {
+      reviewList.value = response.rows || []
     }
-  ]
+  } catch (error) {
+    console.error('加载审核列表失败:', error)
+    message.error('加载数据失败')
+  }
+}
 
-  // 模拟班级管理数据
-  managementList.value = [
-    {
-      id: 101,
-      name: '高级英语班',
-      classLevel: 'A',
-      teacher: '张老师',
-      createTime: '2024-01-15 10:30',
-      studentCount: 40,
-      taskCount: 80
-    },
-    {
-      id: 102,
-      name: '中级英语班',
-      classLevel: 'B',
-      teacher: '李老师',
-      createTime: '2024-01-20 14:20',
-      studentCount: 45,
-      taskCount: 70
-    },
-    {
-      id: 103,
-      name: '初级英语班',
-      classLevel: 'C',
-      teacher: '王老师',
-      createTime: '2024-02-01 09:15',
-      studentCount: 50,
-      taskCount: 65
-    },
-    {
-      id: 104,
-      name: '基础英语班',
-      classLevel: 'D',
-      teacher: '赵老师',
-      createTime: '2024-02-05 16:45',
-      studentCount: 35,
-      taskCount: 60
-    },
-    {
-      id: 105,
-      name: 'A级进阶班',
-      classLevel: 'A',
-      teacher: '张老师',
-      createTime: '2024-01-18 11:00',
-      studentCount: 38,
-      taskCount: 75
-    },
-    {
-      id: 106,
-      name: 'B级提高班',
-      classLevel: 'B',
-      teacher: '李老师',
-      createTime: '2024-01-25 15:30',
-      studentCount: 42,
-      taskCount: 68
-    },
-    {
-      id: 107,
-      name: 'C级入门班',
-      classLevel: 'C',
-      teacher: '王老师',
-      createTime: '2024-02-03 10:20',
-      studentCount: 48,
-      taskCount: 62
-    },
-    {
-      id: 108,
-      name: 'D级启蒙班',
-      classLevel: 'D',
-      teacher: '赵老师',
-      createTime: '2024-02-08 14:00',
-      studentCount: 32,
-      taskCount: 58
+// 加载班级管理列表
+const loadManagementList = async () => {
+  managementLoading.value = true
+  try {
+    const response = await getManageList()
+    if (response.code === 200) {
+      managementList.value = response.rows || []
     }
-  ]
+  } catch (error) {
+    console.error('加载班级管理列表失败:', error)
+    message.error('加载数据失败')
+  } finally {
+    managementLoading.value = false
+  }
 }
 
 onMounted(() => {

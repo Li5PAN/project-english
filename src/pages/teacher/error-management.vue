@@ -27,9 +27,9 @@
                   @change="handleFilterChange"
                 >
                   <a-select-option value="">全部类型</a-select-option>
-                  <a-select-option value="choice">选择题</a-select-option>
-                  <a-select-option value="fillBlank">填空题</a-select-option>
-                  <a-select-option value="spelling">单词拼写</a-select-option>
+                  <a-select-option value="1">选择题</a-select-option>
+                  <a-select-option value="2">填空题</a-select-option>
+                  <a-select-option value="3">单词拼写</a-select-option>
                 </a-select>
               </a-space>
 
@@ -49,14 +49,20 @@
                   <a-select-option value="D">D级</a-select-option>
                 </a-select>
               </a-space>
-              <a-button>搜索</a-button>
-              <a-button>重置</a-button>
+              <a-button type="primary" @click="handleSearch">
+                <template #icon><SearchOutlined /></template>
+                搜索
+              </a-button>
+              <a-button @click="handleReset">
+                <template #icon><ReloadOutlined /></template>
+                重置
+              </a-button>
             </a-space>
           </a-col>
           <a-col :span="6">
             <a-statistic 
-              title="错题总数" 
-              :value="filteredErrors.length" 
+              title="题目总数" 
+              :value="errorList.length" 
               suffix="题"
               :value-style="{ color: '#cf1322' }"
             />
@@ -86,6 +92,19 @@
               </a-menu>
             </template>
           </a-dropdown>
+          <a-button 
+            danger 
+            :disabled="selectedRowKeys.length === 0"
+            @click="showBatchDeleteConfirm"
+          >
+            <template #icon><DeleteOutlined /></template>
+            批量删除
+            <a-badge 
+              v-if="selectedRowKeys.length > 0" 
+              :count="selectedRowKeys.length" 
+              :number-style="{ backgroundColor: '#ff4d4f' }"
+            />
+          </a-button>
         </a-space>
       </div>
     </div>
@@ -94,28 +113,14 @@
     <a-card style="margin-top: 16px;">
       <a-table 
         :columns="columns" 
-        :data-source="filteredErrors" 
+        :data-source="errorList" 
+        :loading="loading"
         :row-selection="rowSelection"
         :pagination="{ pageSize: 10 }"
-        :row-key="record => record.id"
+        :row-key="record => record.questionId"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'question'">
-            <div class="question-cell">
-              <div class="question-content">{{ record.question }}</div>
-              <!-- 选择题显示选项 -->
-              <div v-if="record.questionType === 'choice' && record.options" class="options-preview">
-                <div 
-                  v-for="(option, index) in record.options" 
-                  :key="index"
-                  class="option-preview-item"
-                >
-                  <span>{{ String.fromCharCode(65 + index) }}. {{ option }}</span>
-                </div>
-              </div>
-            </div>
-          </template>
-          <template v-else-if="column.key === 'questionType'">
+          <template v-if="column.key === 'questionType'">
             <a-tag :color="getQuestionTypeColor(record.questionType)">
               {{ getQuestionTypeLabel(record.questionType) }}
             </a-tag>
@@ -130,7 +135,9 @@
               <a-button type="link" size="small" @click="viewErrorDetail(record)">
                 查看详情
               </a-button>
-              
+              <a-button type="link" size="small" @click="deleteError(record)">
+                删除
+              </a-button>
             </a-space>
           </template>
         </template>
@@ -151,6 +158,16 @@
           type="info" 
           show-icon 
         />
+        
+        <div style="margin: 12px 0;">
+          <a 
+            :href="templateUrl" 
+            download
+            style="color: #1890ff; cursor: pointer; text-decoration: none;"
+          >
+            点击下载错题模板
+          </a>
+        </div>
         
         <a-upload
           v-model:file-list="fileList"
@@ -182,14 +199,14 @@
     <!-- 错题详情弹窗 -->
     <a-modal
       v-model:open="detailModalVisible"
-      title="错题详情"
+      title="题目详情"
       :footer="null"
       width="800px"
     >
       <div v-if="selectedError" class="error-detail">
         <a-descriptions :column="1" bordered>
           <a-descriptions-item label="题目内容">
-            {{ selectedError.question }}
+            {{ selectedError.questionContent }}
           </a-descriptions-item>
           <a-descriptions-item label="题目类型">
             <a-tag :color="getQuestionTypeColor(selectedError.questionType)">
@@ -198,17 +215,17 @@
           </a-descriptions-item>
           
           <!-- 选择题显示选项和正确答案 -->
-          <a-descriptions-item label="选项" v-if="selectedError.questionType === 'choice' && selectedError.options">
+          <a-descriptions-item label="选项" v-if="selectedError.questionType === '1' && selectedError.options">
             <div class="options-detail">
               <div 
-                v-for="(option, index) in selectedError.options" 
-                :key="index"
+                v-for="optionItem in parseOptions(selectedError.options).slice(0, 15)" 
+                :key="optionItem[0]"
                 class="option-detail-item"
               >
-                <span :class="{ 'correct-option': selectedError.correctIndexes && selectedError.correctIndexes.includes(index) }">
-                  {{ String.fromCharCode(65 + index) }}. {{ option }}
+                <span :class="{ 'correct-option': selectedError.correctAnswer && selectedError.correctAnswer.includes(optionItem[0]) }">
+                  {{ optionItem[0] }}. {{ optionItem[1] }}
                   <a-tag 
-                    v-if="selectedError.correctIndexes && selectedError.correctIndexes.includes(index)" 
+                    v-if="selectedError.correctAnswer && selectedError.correctAnswer.includes(optionItem[0])" 
                     color="success" 
                     size="small"
                     style="margin-left: 8px;"
@@ -226,15 +243,13 @@
           </a-descriptions-item>
           
           <a-descriptions-item label="错误次数">
-            <span style="color: #cf1322; font-weight: bold;">{{ selectedError.errorCount }} 次</span>
+            <span style="color: #cf1322; font-weight: bold;">{{ selectedError.wrongCount }} 次</span>
           </a-descriptions-item>
           <a-descriptions-item label="任务名称">
-            <a-tag :color="getLevelColor(selectedError.classLevel)">
-              {{ selectedError.classLevel }}级
-            </a-tag>
+            {{ selectedError.taskName }}
           </a-descriptions-item>
           <a-descriptions-item label="创建时间">
-            {{ selectedError.lastErrorTime }}
+            {{ selectedError.createTime }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
@@ -247,7 +262,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import UploadOutlined from '@ant-design/icons-vue/UploadOutlined'
 import DownloadOutlined from '@ant-design/icons-vue/DownloadOutlined'
+import DeleteOutlined from '@ant-design/icons-vue/DeleteOutlined'
 import DownOutlined from '@ant-design/icons-vue/DownOutlined'
+import SearchOutlined from '@ant-design/icons-vue/SearchOutlined'
+import ReloadOutlined from '@ant-design/icons-vue/ReloadOutlined'
+import { getQuestionList, getQuestionDetail, getQuestionTemplateUrl, importQuestion, exportQuestion, batchDeleteQuestions } from '@/services/teacher/tmyError'
+import { Modal } from 'ant-design-vue'
 
 // 筛选条件
 const filterDateRange = ref(null)
@@ -256,13 +276,18 @@ const filterClassLevel = ref('')
 
 // 错题列表
 const errorList = ref([])
+const loading = ref(false)
 
 // 选中的行
 const selectedRowKeys = ref([])
+const selectedRows = ref([])
 
 // 导入弹窗
 const importModalVisible = ref(false)
 const fileList = ref([])
+
+// 模板下载地址
+const templateUrl = getQuestionTemplateUrl()
 
 // 详情弹窗
 const detailModalVisible = ref(false)
@@ -271,11 +296,10 @@ const selectedError = ref(null)
 // 表格列定义
 const columns = [
   {
-    title: '题目内容',
-    dataIndex: 'question',
-    key: 'question',
-    ellipsis: true,
-    width: 300
+    title: '题目ID',
+    dataIndex: 'questionId',
+    key: 'questionId',
+    width: 100
   },
   {
     title: '题目类型',
@@ -285,21 +309,28 @@ const columns = [
   },
   {
     title: '错误次数',
-    dataIndex: 'errorCount',
-    key: 'errorCount',
+    dataIndex: 'wrongCount',
+    key: 'wrongCount',
     width: 100,
-    sorter: (a, b) => a.errorCount - b.errorCount
+    sorter: (a, b) => a.wrongCount - b.wrongCount
   },
   {
     title: '任务名称',
+    dataIndex: 'taskName',
+    key: 'taskName',
+    ellipsis: true,
+    width: 150
+  },
+  {
+    title: '班级等级',
     dataIndex: 'classLevel',
     key: 'classLevel',
     width: 100
   },
   {
     title: '创建时间',
-    dataIndex: 'lastErrorTime',
-    key: 'lastErrorTime',
+    dataIndex: 'createTime',
+    key: 'createTime',
     width: 180
   },
   {
@@ -313,43 +344,23 @@ const columns = [
 // 行选择配置
 const rowSelection = {
   selectedRowKeys: selectedRowKeys,
-  onChange: (keys) => {
+  onChange: (keys, rows) => {
     selectedRowKeys.value = keys
+    selectedRows.value = rows
   }
 }
 
-// 筛选后的错题列表
+// 筛选后的错题列表（后端筛选，无需前端计算）
 const filteredErrors = computed(() => {
-  let result = errorList.value
-
-  // 时间筛选
-  if (filterDateRange.value && filterDateRange.value.length === 2) {
-    const [start, end] = filterDateRange.value
-    result = result.filter(item => {
-      const itemDate = new Date(item.lastErrorTime)
-      return itemDate >= start && itemDate <= end
-    })
-  }
-
-  // 题目类型筛选
-  if (filterQuestionType.value) {
-    result = result.filter(item => item.questionType === filterQuestionType.value)
-  }
-
-  // 班级等级筛选
-  if (filterClassLevel.value) {
-    result = result.filter(item => item.classLevel === filterClassLevel.value)
-  }
-
-  return result
+  return errorList.value
 })
 
 // 获取题型颜色
 const getQuestionTypeColor = (type) => {
   const colorMap = {
-    choice: 'blue',
-    fillBlank: 'green',
-    spelling: 'orange'
+    '1': 'blue',
+    '2': 'green',
+    '3': 'orange'
   }
   return colorMap[type] || 'default'
 }
@@ -357,9 +368,9 @@ const getQuestionTypeColor = (type) => {
 // 获取题型标签
 const getQuestionTypeLabel = (type) => {
   const typeMap = {
-    choice: '选择题',
-    fillBlank: '填空题',
-    spelling: '单词拼写'
+    '1': '选择题',
+    '2': '填空题',
+    '3': '单词拼写'
   }
   return typeMap[type] || '未知'
 }
@@ -375,9 +386,40 @@ const getLevelColor = (level) => {
   return colorMap[level] || 'default'
 }
 
+// 解析选项（兼容数组和对象格式）
+const parseOptions = (options) => {
+  try {
+    const parsed = JSON.parse(options)
+    // 如果是数组，直接返回
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+    // 如果是对象，转成数组格式
+    if (typeof parsed === 'object') {
+      return Object.entries(parsed)
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
 // 处理筛选变化
 const handleFilterChange = () => {
   // 筛选逻辑已通过 computed 实现
+}
+
+// 搜索
+const handleSearch = () => {
+  loadData()
+}
+
+// 重置
+const handleReset = () => {
+  filterDateRange.value = null
+  filterQuestionType.value = ''
+  filterClassLevel.value = ''
+  loadData()
 }
 
 // 显示导入弹窗
@@ -396,19 +438,30 @@ const beforeUpload = (file) => {
 }
 
 // 处理导入
-const handleImport = () => {
+const handleImport = async () => {
   if (fileList.value.length === 0) {
     message.warning('请选择要导入的文件')
     return
   }
 
-  // 模拟导入
-  message.success('错题导入成功！')
-  importModalVisible.value = false
-  fileList.value = []
-  
-  // 重新加载数据
-  loadData()
+  const formData = new FormData()
+  formData.append('file', fileList.value[0].originFileObj)
+
+  try {
+    loading.value = true
+    await importQuestion(formData)
+    message.success('错题导入成功！')
+    importModalVisible.value = false
+    fileList.value = []
+    
+    // 重新加载数据
+    loadData()
+  } catch (error) {
+    console.error('导入失败:', error)
+    message.error('导入失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 取消导入
@@ -417,198 +470,181 @@ const handleCancelImport = () => {
 }
 
 // 处理导出
-const handleExport = ({ key }) => {
-  const exportMap = {
-    'excel-all': '导出全部错题（Excel格式）',
-    'pdf-all': '导出全部错题（PDF格式）',
-    'excel-filtered': `导出筛选结果（Excel格式，共 ${filteredErrors.value.length} 题）`,
-    'pdf-filtered': `导出筛选结果（PDF格式，共 ${filteredErrors.value.length} 题）`
+const handleExport = async ({ key }) => {
+  // 判断是否为全部导出还是筛选导出
+  const isAll = key === 'excel-all' || key === 'pdf-all'
+  const exportType = key.includes('excel') ? 'excel' : 'pdf'
+  
+  // 显示加载提示
+  message.loading({ content: '正在导出...', key: 'export' })
+  
+  try {
+    // 获取任务ID - 使用第一个任务的ID（如果列表有数据）
+    const taskId = errorList.value.length > 0 ? errorList.value[0].taskId : null
+    
+    if (!taskId) {
+      message.warning({ content: '暂无数据可导出', key: 'export' })
+      return
+    }
+    
+    // 调用导出接口
+    const blob = await exportQuestion(taskId)
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(new Blob([blob]))
+    const link = document.createElement('a')
+    link.href = url
+    
+    // 生成文件名
+    const fileName = isAll 
+      ? `错题全部导出_${new Date().getTime()}.${exportType === 'excel' ? 'xlsx' : 'pdf'}`
+      : `错题筛选导出_${new Date().getTime()}.${exportType === 'excel' ? 'xlsx' : 'pdf'}`
+    
+    link.setAttribute('download', fileName)
+    document.body.appendChild(link)
+    link.click()
+    
+    // 清理
+    link.parentNode.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    message.success({ content: '导出成功', key: 'export' })
+  } catch (error) {
+    console.error('导出失败:', error)
+    message.error({ content: '导出失败，请重试', key: 'export' })
+  }
+}
+
+// 显示批量删除确认框
+const showBatchDeleteConfirm = () => {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请先选择要删除的题目')
+    return
   }
   
-  message.success(exportMap[key])
-  console.log('导出操作:', key)
+  Modal.confirm({
+    title: '确认批量删除',
+    content: `确定要删除选中的 ${selectedRowKeys.value.length} 道题目吗？此操作不可恢复。`,
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      await handleBatchDelete()
+    }
+  })
+}
+
+// 执行批量删除
+const handleBatchDelete = async () => {
+  try {
+    loading.value = true
+    const res = await batchDeleteQuestions(selectedRowKeys.value)
+    
+    if (res.code === 200) {
+      message.success(res.msg || `成功删除 ${selectedRowKeys.value.length} 道题目`)
+      // 清空选择
+      selectedRowKeys.value = []
+      selectedRows.value = []
+      // 重新加载数据
+      await loadData()
+    } else {
+      message.error(res.msg || '删除失败')
+    }
+  } catch (error) {
+    console.error('删除失败:', error)
+    message.error('删除失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 查看错题详情
-const viewErrorDetail = (record) => {
-  selectedError.value = record
-  detailModalVisible.value = true
+const viewErrorDetail = async (record) => {
+  loading.value = true
+  try {
+    const res = await getQuestionDetail(record.questionId)
+    if (res.code === 200) {
+      selectedError.value = res.data
+      detailModalVisible.value = true
+    } else {
+      message.error(res.msg || '获取题目详情失败')
+    }
+  } catch (error) {
+    console.error('获取题目详情失败:', error)
+    message.error('获取题目详情失败')
+  } finally {
+    loading.value = false
+  }
 }
 
-// 删除错题
+// 删除错题（单个）
 const deleteError = (record) => {
-  errorList.value = errorList.value.filter(item => item.id !== record.id)
-  message.success('删除成功')
-}
-
-// 批量删除
-const handleBatchDelete = () => {
-  errorList.value = errorList.value.filter(item => !selectedRowKeys.value.includes(item.id))
-  selectedRowKeys.value = []
-  message.success('批量删除成功')
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除这道错题吗？此操作不可恢复。`,
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        loading.value = true
+        const res = await batchDeleteQuestions([record.questionId])
+        
+        if (res.code === 200) {
+          message.success(res.msg || '删除成功')
+          // 从列表中移除
+          errorList.value = errorList.value.filter(item => item.questionId !== record.questionId)
+          // 重新加载数据
+          await loadData()
+        } else {
+          message.error(res.msg || '删除失败')
+        }
+      } catch (error) {
+        console.error('删除失败:', error)
+        message.error('删除失败，请重试')
+      } finally {
+        loading.value = false
+      }
+    }
+  })
 }
 
 // 加载数据
-const loadData = () => {
-  // 模拟错题数据
-  errorList.value = [
-    {
-      id: 1,
-      question: 'What is the capital of France?',
-      questionType: 'choice',
-      options: ['London', 'Paris', 'Berlin', 'Madrid'],
-      correctIndexes: [1],
-      correctAnswer: 'B',
-      errorCount: 15,
-      classLevel: 'A',
-      lastErrorTime: '2024-02-08 14:30'
-    },
-    {
-      id: 2,
-      question: 'The sky is ___.',
-      questionType: 'fillBlank',
-      correctAnswer: 'blue',
-      errorCount: 8,
-      classLevel: 'B',
-      lastErrorTime: '2024-02-07 10:15'
-    },
-    {
-      id: 3,
-      question: '拼写单词：美丽的',
-      questionType: 'spelling',
-      correctAnswer: 'beautiful',
-      errorCount: 22,
-      classLevel: 'C',
-      lastErrorTime: '2024-02-09 16:45'
-    },
-    {
-      id: 4,
-      question: 'Choose the correct tense: I ___ to school yesterday.',
-      questionType: 'choice',
-      options: ['go', 'went', 'going', 'goes'],
-      correctIndexes: [1],
-      correctAnswer: 'B',
-      errorCount: 12,
-      classLevel: 'A',
-      lastErrorTime: '2024-02-08 09:20'
-    },
-    {
-      id: 5,
-      question: 'She ___ a teacher.',
-      questionType: 'fillBlank',
-      correctAnswer: 'is',
-      errorCount: 5,
-      classLevel: 'D',
-      lastErrorTime: '2024-02-06 11:30'
-    },
-    {
-      id: 6,
-      question: 'Which of the following are fruits?',
-      questionType: 'choice',
-      options: ['Apple', 'Carrot', 'Banana', 'Potato', 'Orange'],
-      correctIndexes: [0, 2, 4],
-      correctAnswer: 'A,C,E',
-      errorCount: 18,
-      classLevel: 'B',
-      lastErrorTime: '2024-02-09 10:20'
-    },
-    {
-      id: 7,
-      question: 'The book is ___ the table.',
-      questionType: 'fillBlank',
-      correctAnswer: 'on',
-      errorCount: 9,
-      classLevel: 'D',
-      lastErrorTime: '2024-02-10 08:45'
-    },
-    {
-      id: 8,
-      question: '拼写单词：重要的',
-      questionType: 'spelling',
-      correctAnswer: 'important',
-      errorCount: 25,
-      classLevel: 'C',
-      lastErrorTime: '2024-02-10 14:20'
-    },
-    {
-      id: 9,
-      question: 'Which sentence is correct?',
-      questionType: 'choice',
-      options: ['He go to school.', 'He goes to school.', 'He going to school.', 'He gone to school.'],
-      correctIndexes: [1],
-      correctAnswer: 'B',
-      errorCount: 14,
-      classLevel: 'A',
-      lastErrorTime: '2024-02-11 09:30'
-    },
-    {
-      id: 10,
-      question: 'They ___ playing football now.',
-      questionType: 'fillBlank',
-      correctAnswer: 'are',
-      errorCount: 7,
-      classLevel: 'B',
-      lastErrorTime: '2024-02-11 11:15'
-    },
-    {
-      id: 11,
-      question: '拼写单词：经验，体验',
-      questionType: 'spelling',
-      correctAnswer: 'experience',
-      errorCount: 30,
-      classLevel: 'A',
-      lastErrorTime: '2024-02-12 10:00'
-    },
-    {
-      id: 12,
-      question: 'Select the past tense of "eat".',
-      questionType: 'choice',
-      options: ['eated', 'ate', 'eaten', 'eating'],
-      correctIndexes: [1],
-      correctAnswer: 'B',
-      errorCount: 11,
-      classLevel: 'B',
-      lastErrorTime: '2024-02-12 15:40'
-    },
-    {
-      id: 13,
-      question: 'I have ___ finished my homework.',
-      questionType: 'fillBlank',
-      correctAnswer: 'already',
-      errorCount: 16,
-      classLevel: 'C',
-      lastErrorTime: '2024-02-13 08:20'
-    },
-    {
-      id: 14,
-      question: 'Which words are adjectives?',
-      questionType: 'choice',
-      options: ['quickly', 'beautiful', 'happy', 'run', 'tall'],
-      correctIndexes: [1, 2, 4],
-      correctAnswer: 'B,C,E',
-      errorCount: 20,
-      classLevel: 'A',
-      lastErrorTime: '2024-02-13 13:50'
-    },
-    {
-      id: 15,
-      question: '拼写单词：环境',
-      questionType: 'spelling',
-      correctAnswer: 'environment',
-      errorCount: 28,
-      classLevel: 'B',
-      lastErrorTime: '2024-02-14 09:10'
-    },
-    {
-      id: 16,
-      question: 'She ___ not like coffee.',
-      questionType: 'fillBlank',
-      correctAnswer: 'does',
-      errorCount: 6,
-      classLevel: 'D',
-      lastErrorTime: '2024-02-14 16:30'
+const loadData = async () => {
+  loading.value = true
+  try {
+    // 构建查询参数
+    const params = {}
+    
+    // 时间范围
+    if (filterDateRange.value && filterDateRange.value.length === 2) {
+      const [start, end] = filterDateRange.value
+      params.beginDate = start.format('YYYY-MM-DD')
+      params.endDate = end.format('YYYY-MM-DD')
     }
-  ]
+    
+    // 题目类型
+    if (filterQuestionType.value) {
+      params.questionType = filterQuestionType.value
+    }
+    
+    // 班级等级
+    if (filterClassLevel.value) {
+      params.classLevel = filterClassLevel.value
+    }
+    
+    const res = await getQuestionList(params)
+    if (res.code === 200) {
+      errorList.value = res.rows || []
+    } else {
+      message.error(res.msg || '获取题目列表失败')
+    }
+  } catch (error) {
+    console.error('获取题目列表失败:', error)
+    message.error('获取题目列表失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

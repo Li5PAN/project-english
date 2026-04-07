@@ -23,7 +23,8 @@
         :columns="columns" 
         :data-source="filteredUserList" 
         :pagination="{ pageSize: 10 }"
-        :row-key="record => record.id"
+        :row-key="record => record.userId"
+        :loading="loading"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'role'">
@@ -58,17 +59,17 @@
       <div v-if="selectedUser" class="user-detail">
         <a-descriptions :column="1" bordered>
           <a-descriptions-item label="姓名">
-            {{ selectedUser.name }}
+            {{ selectedUser.nickName }}
           </a-descriptions-item>
           <a-descriptions-item label="账号">
-            {{ selectedUser.username }}
+            {{ selectedUser.userName }}
           </a-descriptions-item>
           <a-descriptions-item label="身份">
-            <a-tag :color="getRoleColor(selectedUser.role)">
-              {{ getRoleLabel(selectedUser.role) }}
+            <a-tag :color="getRoleColor(selectedUser.roleType)">
+              {{ getRoleLabel(selectedUser.roleType) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="当前班级">
+          <a-descriptions-item label="当前班级" v-if="selectedUser.roleType === 'student'">
             <span v-if="selectedUser.className">
               <a-tag :color="getLevelColor(selectedUser.classLevel)" size="small">
                 {{ selectedUser.classLevel }}级
@@ -77,8 +78,14 @@
             </span>
             <span v-else style="color: #999;">暂无班级</span>
           </a-descriptions-item>
-          <a-descriptions-item label="注册时间" v-if="selectedUser.registerTime">
-            {{ selectedUser.registerTime }}
+          <a-descriptions-item label="邮箱" v-if="selectedUser.email">
+            {{ selectedUser.email || '暂无' }}
+          </a-descriptions-item>
+          <a-descriptions-item label="手机号" v-if="selectedUser.phonenumber">
+            {{ selectedUser.phonenumber || '暂无' }}
+          </a-descriptions-item>
+          <a-descriptions-item label="创建时间" v-if="selectedUser.createTime">
+            {{ formatDate(selectedUser.createTime) }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
@@ -89,6 +96,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { getUserList, getUserDetail, deleteUser } from '@/services/admin/person'
 
 // 身份筛选
 const roleFilter = ref('')
@@ -100,24 +108,27 @@ const userList = ref([])
 const detailModalVisible = ref(false)
 const selectedUser = ref(null)
 
+// 加载状态
+const loading = ref(false)
+
 // 表格列定义
 const columns = [
   {
     title: '姓名',
-    dataIndex: 'name',
-    key: 'name',
+    dataIndex: 'nickName',
+    key: 'nickName',
     width: 120
   },
   {
     title: '账号',
-    dataIndex: 'username',
-    key: 'username',
+    dataIndex: 'userName',
+    key: 'userName',
     width: 150
   },
   {
     title: '身份',
-    dataIndex: 'role',
-    key: 'role',
+    dataIndex: 'roleType',
+    key: 'roleType',
     width: 100
   },
   {
@@ -133,7 +144,7 @@ const filteredUserList = computed(() => {
   if (!roleFilter.value) {
     return userList.value
   }
-  return userList.value.filter(item => item.role === roleFilter.value)
+  return userList.value.filter(item => item.roleType === roleFilter.value)
 })
 
 // 获取身份颜色
@@ -167,146 +178,77 @@ const getLevelColor = (level) => {
   return colorMap[level] || 'default'
 }
 
+// 格式化日期
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
 // 处理筛选变化
 const handleFilterChange = () => {
   // 筛选逻辑已通过 computed 实现
 }
 
 // 显示详情
-const showDetail = (record) => {
-  selectedUser.value = record
-  detailModalVisible.value = true
+const showDetail = async (record) => {
+  try {
+    const res = await getUserDetail(record.userId)
+    if (res.code === 200) {
+      selectedUser.value = res.data
+      detailModalVisible.value = true
+    } else {
+      message.error(res.msg || '获取详情失败')
+    }
+  } catch (error) {
+    message.error('获取详情失败')
+  }
 }
 
 // 处理删除
 const handleDelete = (record) => {
   Modal.confirm({
     title: '确认删除',
-    content: `确定删除用户 "${record.name}" (${record.username}) 吗？此操作不可恢复。`,
+    content: `确定删除用户 "${record.nickName}" (${record.userName}) 吗？此操作不可恢复。`,
     okText: '确认',
     cancelText: '取消',
-    onOk() {
-      userList.value = userList.value.filter(item => item.id !== record.id)
-      message.success('删除成功')
+    onOk: async () => {
+      try {
+        const res = await deleteUser(record.userId)
+        if (res.code === 200) {
+          userList.value = userList.value.filter(item => item.userId !== record.userId)
+          message.success('删除成功')
+        } else {
+          message.error(res.msg || '删除失败')
+        }
+      } catch (error) {
+        message.error('删除失败')
+      }
     }
   })
 }
 
 // 加载数据
-const loadData = () => {
-  // 模拟人员数据
-  userList.value = [
-    // 老师
-    {
-      id: 1,
-      name: '张老师',
-      username: 'teacher_zhang',
-      role: 'teacher',
-      className: null,
-      classLevel: null,
-      registerTime: '2024-01-10 09:00'
-    },
-    {
-      id: 2,
-      name: '李老师',
-      username: 'teacher_li',
-      role: 'teacher',
-      className: null,
-      classLevel: null,
-      registerTime: '2024-01-12 10:30'
-    },
-    {
-      id: 3,
-      name: '王老师',
-      username: 'teacher_wang',
-      role: 'teacher',
-      className: null,
-      classLevel: null,
-      registerTime: '2024-01-15 14:20'
-    },
-    {
-      id: 4,
-      name: '赵老师',
-      username: 'teacher_zhao',
-      role: 'teacher',
-      className: null,
-      classLevel: null,
-      registerTime: '2024-01-18 11:00'
-    },
-    // 学生
-    {
-      id: 101,
-      name: '张三',
-      username: 'student_zhangsan',
-      role: 'student',
-      className: '高级英语班',
-      classLevel: 'A',
-      registerTime: '2024-01-20 09:30'
-    },
-    {
-      id: 102,
-      name: '李四',
-      username: 'student_lisi',
-      role: 'student',
-      className: '中级英语班',
-      classLevel: 'B',
-      registerTime: '2024-01-21 10:15'
-    },
-    {
-      id: 103,
-      name: '王五',
-      username: 'student_wangwu',
-      role: 'student',
-      className: '初级英语班',
-      classLevel: 'C',
-      registerTime: '2024-01-22 14:30'
-    },
-    {
-      id: 104,
-      name: '赵六',
-      username: 'student_zhaoliu',
-      role: 'student',
-      className: '基础英语班',
-      classLevel: 'D',
-      registerTime: '2024-01-23 11:20'
-    },
-    {
-      id: 105,
-      name: '孙七',
-      username: 'student_sunqi',
-      role: 'student',
-      className: '高级英语班',
-      classLevel: 'A',
-      registerTime: '2024-01-24 15:45'
-    },
-    {
-      id: 106,
-      name: '周八',
-      username: 'student_zhouba',
-      role: 'student',
-      className: null,
-      classLevel: null,
-      registerTime: '2024-01-25 09:00'
-    },
-    {
-      id: 107,
-      name: '吴九',
-      username: 'student_wujiu',
-      role: 'student',
-      className: '中级英语班',
-      classLevel: 'B',
-      registerTime: '2024-01-26 10:30'
-    },
-    {
-      id: 108,
-      name: '郑十',
-      username: 'student_zhengshi',
-      role: 'student',
-      className: '初级英语班',
-      classLevel: 'C',
-      registerTime: '2024-01-27 14:00'
+const loadData = async () => {
+  loading.value = true
+  try {
+    const res = await getUserList(roleFilter.value)
+    if (res.code === 200) {
+      userList.value = res.rows || []
+    } else {
+      message.error(res.msg || '获取列表失败')
     }
-  ]
+  } catch (error) {
+    message.error('获取列表失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
