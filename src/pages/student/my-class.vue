@@ -221,7 +221,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, TeamOutlined, TrophyOutlined } from '@ant-design/icons-vue'
 import * as echarts from 'echarts'
-import { getMyClassInfo, getClassList, getClassRanking, joinClass, quitClass } from '@/services/myClass'
+import { getClassStatus, getMyClassInfo, getClassList, getClassRanking, joinClass, quitClass } from '@/services/myClass'
 
 const router = useRouter()
 
@@ -295,7 +295,67 @@ const currentClass = ref({
   completedTasks: 0
 })
 
-// 加载我的班级信息
+// 班级状态枚举
+const ClassStatus = {
+  NO_CLASS: 0,       // 无班级
+  JOINED: 1,         // 已入班
+  APPLYING_JOIN: 2,   // 申请入班中
+  APPLYING_QUIT: 3,   // 申请退班中
+  APPLYING_CHANGE: 4  // 申请转班中
+}
+
+// 加载学生班级状态
+const loadClassStatus = async () => {
+  try {
+    const res = await getClassStatus()
+    if (res.code === 200 && res.data) {
+      const data = res.data
+      const status = data.status
+      isFirstJoin.value = data.isFirstJoin
+
+      // 根据状态码判断显示内容
+      if (status === ClassStatus.JOINED) {
+        // 已入班，加载班级详情
+        hasClass.value = true
+        currentClassId.value = data.currentClassId
+        currentClassName.value = data.currentClassName
+        await loadMyClassInfo()
+      } else if (status === ClassStatus.APPLYING_JOIN) {
+        // 申请入班中
+        hasClass.value = false
+        currentClassId.value = null
+        currentClassName.value = null
+        // 可以显示待审核提示
+        if (data.pendingApplication) {
+          message.info(`入班申请正在审核中，请等待老师处理`)
+        }
+      } else if (status === ClassStatus.APPLYING_QUIT) {
+        // 申请退班中
+        hasClass.value = true
+        await loadMyClassInfo()
+        message.info(`退班申请正在审核中，请等待老师处理`)
+      } else if (status === ClassStatus.APPLYING_CHANGE) {
+        // 申请转班中
+        hasClass.value = true
+        await loadMyClassInfo()
+        message.info(`转班申请正在审核中，请等待老师处理`)
+      } else {
+        // 无班级 (status === ClassStatus.NO_CLASS)
+        hasClass.value = false
+        currentClassId.value = null
+        currentClassName.value = null
+      }
+    }
+  } catch (error) {
+    console.error('获取班级状态失败:', error)
+  }
+}
+
+// 当前班级ID
+const currentClassId = ref(null)
+const currentClassName = ref(null)
+
+// 加载我的班级信息（详细）
 const loadMyClassInfo = async () => {
   try {
     const res = await getMyClassInfo()
@@ -313,7 +373,6 @@ const loadMyClassInfo = async () => {
         totalTasks: data.totalTasks || 0,
         completedTasks: data.completedTasks || 0
       }
-      hasClass.value = !!data.classId
     }
   } catch (error) {
     console.error('获取班级信息失败:', error)
@@ -615,7 +674,9 @@ const goToChangeClass = () => {
 
 // 生命周期
 onMounted(async () => {
-  await loadMyClassInfo()
+  // 先加载班级状态，根据状态决定显示内容
+  await loadClassStatus()
+
   if (hasClass.value) {
     await loadClassRanking()
     initTrendChart()

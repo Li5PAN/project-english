@@ -5,6 +5,20 @@
 import request from '../utils/request'
 
 /**
+ * 获取学生班级状态
+ * @returns {Promise<Object>} - 返回班级状态信息
+ * status: 0-无班级, 1-已入班, 2-申请入班中, 3-申请退班中, 4-申请转班中
+ */
+export async function getClassStatus() {
+  const res = await request({
+    url: '/student/class/status',
+    method: 'GET'
+  })
+
+  return res
+}
+
+/**
  * 获取我的班级信息
  * @returns {Promise<Object>} - 返回班级信息
  */
