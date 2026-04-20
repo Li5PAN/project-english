@@ -70,7 +70,7 @@
       <div class="classes-grid">
         <a-row :gutter="[16, 16]">
           <a-col 
-            v-for="classItem in filteredClasses" 
+            v-for="classItem in paginatedClasses" 
             :key="classItem.id" 
             :xs="24" 
             :sm="12" 
@@ -127,7 +127,18 @@
         </a-row>
 
         <!-- 空状态 -->
-        <a-empty v-if="filteredClasses.length === 0" description="暂无班级数据" />
+        <a-empty v-if="paginatedClasses.length === 0" description="暂无班级数据" />
+      </div>
+
+      <!-- 分页器 -->
+      <div class="pagination-wrapper">
+        <a-pagination
+          v-model:current="pagination.current"
+          :total="filteredClasses.length"
+          :page-size="pagination.pageSize"
+          show-quick-jumper
+          @change="handlePageChange"
+        />
       </div>
     </div>
 
@@ -371,8 +382,15 @@ const classList = ref([])
 // 分页配置
 const pagination = ref({
   current: 1,
-  pageSize: 10,
+  pageSize: 100, // 一次获取100条
   total: 0
+})
+
+// 分页后的班级列表
+const paginatedClasses = computed(() => {
+  const start = (pagination.value.current - 1) * pagination.value.pageSize
+  const end = start + pagination.value.pageSize
+  return filteredClasses.value.slice(start, end)
 })
 
 // 创建弹窗相关
@@ -410,9 +428,9 @@ const filteredClasses = computed(() => {
 
 // 监听筛选等级变化，重新加载列表
 watch(filterLevel, () => {
-  // 重置分页并重新加载
+  // 重置分页
   pagination.value.current = 1
-  loadClassList()
+  // 列表数据已通过 computed 筛选，无需重新加载
 })
 
 // 获取等级颜色
@@ -672,6 +690,13 @@ const handleFilterChange = () => {
   // 筛选逻辑已通过 computed 实现
 }
 
+// 处理分页变化
+const handlePageChange = (page, pageSize) => {
+  pagination.value.current = page
+  // 滚动到顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 // 加载统计数据
 const loadStatistics = async () => {
   try {
@@ -692,8 +717,8 @@ const loadClassList = async () => {
   try {
     const listRes = await getClassList({
       classLevel: filterLevel.value || undefined,
-      pageNum: pagination.current,
-      pageSize: pagination.pageSize
+      pageNum: 1, // 每次都从第一页开始
+      pageSize: 100 // 一次获取100条
     })
     // 根据后端返回格式，数据直接在根层级
     if (listRes.code === 200 && listRes.rows) {
@@ -706,7 +731,8 @@ const loadClassList = async () => {
         maxStudents: item.maxStudents,
         taskCount: item.taskCount,
         createTime: formatDate(item.createTime),
-        pendingCount: item.pendingApplicationCount
+        pendingCount: item.pendingApplicationCount,
+        auditStatus: item.auditStatus // 0-待审核 1-已通过 2-已拒绝
       }))
       pagination.total = listRes.total || 0
     }

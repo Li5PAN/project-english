@@ -499,8 +499,8 @@ export async function toggleWordCollect(wordId, collect) {
     url: '/student/words/collect',
     method: 'POST',
     params: {
-      collect,
-      wordId
+      wordId,
+      collect
     }
   })
 
@@ -508,7 +508,7 @@ export async function toggleWordCollect(wordId, collect) {
 }
 
 /**
- * 删除收藏单词（批量）
+ * 取消收藏接口
  * @param {string|number|string[]|number[]} collectionIds - 收藏记录ID，单个或多个
  * @returns {Promise<Object>} - 返回操作结果
  */

@@ -565,7 +565,7 @@ const submitTask = async () => {
     if (res && res.code === 200 && res.data) {
       const result = res.data
       // 显示结果
-      message.success(`提交成功！得分：${result.score.toFixed(1)}分（答对${result.correctCount}题，答错${result.wrongCount}题）`)
+      message.success(`提交成功！（答对${result.correctCount}题，答错${result.wrongCount}题）`)
       
       // 刷新任务列表
       await fetchTasks()

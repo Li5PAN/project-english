@@ -561,18 +561,12 @@ const playAudio = (audioUrl) => {
 
 // 切换收藏
 const toggleFavorite = async () => {
-  // 如果已经是收藏状态，禁止取消收藏（后端取消收藏接口有问题）
-  if (isFavorite.value) {
-    message.warning('已收藏，不可取消')
-    return
-  }
-  
   const wordData = isSearchMode.value ? searchResult.value : currentWord.value
   console.log('wordData:', wordData)
   const wordId = wordData.wordId
   const word = wordData.word
   
-  console.log('toggleFavorite - wordId:', wordId, 'word:', word)
+  console.log('toggleFavorite - wordId:', wordId, 'word:', word, 'isFavorite:', isFavorite.value)
   
   if (!wordId) {
     message.error('无法获取单词ID')
@@ -580,9 +574,10 @@ const toggleFavorite = async () => {
   }
   
   try {
-    await toggleWordCollect(wordId, true)  // 只能收藏，不能取消
-    isFavorite.value = true
-    message.success('收藏成功')
+    const collect = !isFavorite.value  // 如果当前是收藏状态，则取消；如果是未收藏，则收藏
+    await toggleWordCollect(wordId, collect)
+    isFavorite.value = collect  // 更新收藏状态
+    message.success(collect ? '收藏成功' : '已取消收藏')
   } catch (error) {
     message.error('操作失败，请稍后重试')
   }

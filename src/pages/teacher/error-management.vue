@@ -443,10 +443,8 @@ const handleImport = async () => {
     message.warning('请选择要导入的文件')
     return
   }
-
   const formData = new FormData()
   formData.append('file', fileList.value[0].originFileObj)
-
   try {
     loading.value = true
     await importQuestion(formData)
@@ -477,24 +475,19 @@ const handleExport = async ({ key }) => {
   
   // 显示加载提示
   message.loading({ content: '正在导出...', key: 'export' })
-  
   try {
     // 获取任务ID - 使用第一个任务的ID（如果列表有数据）
     const taskId = errorList.value.length > 0 ? errorList.value[0].taskId : null
-    
     if (!taskId) {
       message.warning({ content: '暂无数据可导出', key: 'export' })
       return
     }
-    
     // 调用导出接口
     const blob = await exportQuestion(taskId)
-    
     // 创建下载链接
     const url = window.URL.createObjectURL(new Blob([blob]))
     const link = document.createElement('a')
     link.href = url
-    
     // 生成文件名
     const fileName = isAll 
       ? `错题全部导出_${new Date().getTime()}.${exportType === 'excel' ? 'xlsx' : 'pdf'}`
@@ -505,8 +498,8 @@ const handleExport = async ({ key }) => {
     link.click()
     
     // 清理
-    link.parentNode.removeChild(link)
-    window.URL.revokeObjectURL(url)
+    link.parentNode.removeChild(link) // 删除链接节点
+    window.URL.revokeObjectURL(url) // 释放URL对象
     
     message.success({ content: '导出成功', key: 'export' })
   } catch (error) {
